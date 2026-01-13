@@ -1,0 +1,6 @@
+export enum USER_ROLES {
+  ADMIN = "ADMIN",
+  MANAGER = "GESTIONNAIRE",
+  CLIENT = "CLIENT",
+  COURIER = "LIVREUR",
+}

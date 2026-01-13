@@ -1,0 +1,20 @@
+export enum LinksEnum {
+  home = "/",
+  login = "/login",
+  logout = "/logout",
+  recover = "/recover",
+  register = "/register",
+
+  dashboard = "/dashboard",
+  products = "/products",
+  orders = "/orders",
+  entries = "/entries",
+  exits = "/exits",
+  deliveries = "/deliveries",
+  couriers = "/couriers",
+  customers = "/customers",
+  managers = "/managers",
+  notifications = "/notifications",
+  logs = "/logs",
+  profile = "/profile",
+}

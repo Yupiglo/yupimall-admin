@@ -1,0 +1,191 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  --color-primary: #8f1cd2;
+  --color-secondary: #0c24ff;
+  --color-white: #ffffff;
+  --color-black: #1d1d1d;
+  --color-main-bg: #ededed;
+  --color-red-alert: #fd5353;
+  --color-red-alert-container: #f8aaaaa6;
+  --color-green-valid: #00b230;
+  --color-nav-bg: #707ce5;
+  --color-cart-bg-1: #9bfab4a6;
+  --color-cart-bg-2: #9ba6fa80;
+  --color-cart-bg-3: #facf9ba6;
+  --color-cart-bg-4: #fa9bf8a6;
+  --color-cart-bg-5: #ff8f4a80;
+  --color-orange-pending: #ff4a09;
+  --color-table-header: #d9d9d9;
+
+  --font-display: Montserrat, sans-serif;
+  --font-display-mono: Consolas, monospace;
+
+  --transition: all 0.3s ease;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-display);
+  --font-mono: var(--font-display-mono);
+}
+
+@layer components {
+  .extra-big-title {
+    @apply text-[40px] font-bold;
+  }
+  .too-big-title {
+    @apply text-[32px] font-bold;
+  }
+  .big-title-bold {
+    @apply text-[25px] font-bold;
+  }
+  .title-1-bold {
+    @apply text-[20px] font-bold;
+  }
+  .title-1-semibold {
+    @apply text-[20px] font-semibold;
+  }
+  .title-1-medium {
+    @apply text-[20px] font-medium;
+  }
+  .title-1-regular {
+    @apply text-[20px] font-normal;
+  }
+
+  .title-2-bold {
+    @apply text-[18px] font-bold;
+  }
+  .title-2-semibold {
+    @apply text-[18px] font-semibold;
+  }
+  .title-2-medium {
+    @apply text-[18px] font-medium;
+  }
+  .title-2-regular {
+    @apply text-[18px] font-normal;
+  }
+
+  .title-3-bold {
+    @apply text-[16px] font-bold;
+  }
+  .title-3-semibold {
+    @apply text-[16px] font-semibold;
+  }
+  .title-3-medium {
+    @apply text-[16px] font-medium;
+  }
+  .title-3-italic {
+    @apply text-[16px] font-medium italic;
+  }
+  .title-3-regular {
+    @apply text-[16px] font-normal;
+  }
+
+  .body-1-bold {
+    @apply text-[14px] font-bold;
+  }
+  .body-1-semibold {
+    @apply text-[14px] font-semibold;
+  }
+  .body-1-medium {
+    @apply text-[14px] font-medium;
+  }
+  .body-1-regular {
+    @apply text-[14px] font-normal;
+  }
+
+  .body-2-bold {
+    @apply text-[12px] font-bold;
+  }
+  .body-2-medium {
+    @apply text-[12px] font-medium;
+  }
+  .body-2-regular {
+    @apply text-[12px] font-normal;
+  }
+
+  .body-3-bold {
+    @apply text-[10px] font-bold;
+  }
+
+  /* --- Global Components & Utilities --- */
+
+  /* Text Colors */
+  .text-primary-contrast {
+    @apply text-neutral-900 dark:text-white;
+  }
+  .text-secondary-contrast {
+    @apply text-neutral-500 dark:text-neutral-400;
+  }
+
+  /* Cards */
+  .card {
+    @apply bg-white dark:bg-neutral-900 rounded-2xl border border-neutral-100 dark:border-neutral-800 shadow-sm;
+  }
+  .card-hover {
+    @apply transition-all hover:shadow-md;
+  }
+
+  /* Badges */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border;
+  }
+
+  /* Tables */
+  .table-base {
+    @apply w-full text-sm text-left;
+  }
+  .table-header {
+    @apply bg-neutral-50 dark:bg-neutral-800/50 text-neutral-500 font-medium;
+  }
+  .table-row-hover {
+    @apply hover:bg-neutral-50/50 dark:hover:bg-neutral-800/50 transition-colors;
+  }
+  .table-cell {
+    @apply px-6 py-4;
+  }
+
+  /* Navigation */
+  .nav-item {
+    @apply flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+* {
+  transition: var(--transition);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-display);
+}
+@media print {
+
+  header,
+  nav,
+  .MuiDrawer-root,
+  .MuiAppBar-root,
+  button,
+  .no-print {
+    display: none !important;
+  }
+
+  main,
+  .MuiBox-root {
+    margin-left: 0 !important;
+    padding: 0 !important;
+  }
+}
