@@ -36,6 +36,7 @@ const navItems = [
   { name: "Dashboard", href: "/dashboard", icon: <DashboardIcon /> },
   { name: "Products", href: "/products", icon: <ProductsIcon /> },
   { name: "Orders", href: "/orders", icon: <OrdersIcon /> },
+  { name: "Registrations", href: "/registrations", icon: <LogsIcon /> },
   { name: "Entries", href: "/entries", icon: <ExitsIconAlt /> },
   { name: "Exits", href: "/exits", icon: <EntriesIconAlt /> },
   { name: "Delivery", href: "/delivery", icon: <DeliveriesIcon /> },

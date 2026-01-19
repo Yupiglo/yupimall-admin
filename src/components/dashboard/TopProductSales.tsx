@@ -33,12 +33,17 @@ export default function TopProductSales() {
         const fetchProducts = async () => {
             try {
                 const response = await axiosInstance.get("products");
-                const allProducts = response.data.products || [];
-                // Sort by sold descending and take top 5
-                const sorted = allProducts
-                    .sort((a: Product, b: Product) => (b.sold || 0) - (a.sold || 0))
-                    .slice(0, 5);
-                setProducts(sorted);
+                const allProducts = response.data.getAllProducts || response.data.products || [];
+
+                // Ensure allProducts is an array before sorting
+                if (Array.isArray(allProducts)) {
+                    const sorted = [...allProducts]
+                        .sort((a: Product, b: Product) => (b.sold || 0) - (a.sold || 0))
+                        .slice(0, 5);
+                    setProducts(sorted);
+                } else {
+                    setProducts([]);
+                }
             } catch (error) {
                 console.error("Failed to fetch products:", error);
             } finally {

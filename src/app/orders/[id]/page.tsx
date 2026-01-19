@@ -28,7 +28,23 @@ import {
   CalendarToday as DateIcon,
   AttachMoney as TotalIcon,
   LocalShipping as ShippingIcon,
+  Delete as DeleteIcon,
+  CheckCircle as ValidIcon,
+  Image as ImageIcon,
+  ExpandMore as ExpandMoreIcon,
 } from "@mui/icons-material";
+import {
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem,
+  Switch,
+  FormControlLabel,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+} from "@mui/material";
 
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -44,21 +60,38 @@ export default function OrderDetailPage({
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const decodedId = decodeURIComponent(id);
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
   const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [updating, setUpdating] = useState(false);
+  const [openProofModal, setOpenProofModal] = useState(false);
+  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+
+  // 8-Role Workflow Statuses
+  const ORDER_STATUSES = [
+    { value: "pending", label: "Pending (En attente)" },
+    { value: "validated", label: "Validated (Validé - Info Warehouse)" },
+    { value: "reached_warehouse", label: "Reached Warehouse (Arrivé Warehouse)" },
+    { value: "shipped_to_stockist", label: "Shipped to Stockist (En route Stockiste)" },
+    { value: "reached_stockist", label: "Reached Stockist (Arrivé Stockiste)" },
+    { value: "out_for_delivery", label: "Out for Delivery (En Livraison)" },
+    { value: "delivered", label: "Delivered (Livré)" },
+    { value: "canceled", label: "Canceled (Annulé)" },
+  ];
+
+  const fetchOrder = async () => {
+    try {
+      const response = await axiosInstance.get(`orders/${decodedId}`);
+      setOrder(response.data.order);
+    } catch (error) {
+      console.error("Failed to fetch order details:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrder = async () => {
-      try {
-        const response = await axiosInstance.get(`orders/${decodedId}`);
-        setOrder(response.data.order);
-      } catch (error) {
-        console.error("Failed to fetch order details:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrder();
   }, [decodedId]);
 
@@ -67,6 +100,50 @@ export default function OrderDetailPage({
       window.print();
     }
   }, [searchParams]);
+
+  const handleUpdateStatus = async (newStatus: string) => {
+    try {
+      setUpdating(true);
+      await axiosInstance.put(`orders/${order._id || order.id}`, {
+        order_status: newStatus,
+      });
+      fetchOrder(); // Refresh to get updated state/metadata if any
+    } catch (error) {
+      console.error("Failed to update status:", error);
+      alert("Failed to update status");
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleTogglePaid = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    try {
+      const isPaid = e.target.checked;
+      setUpdating(true);
+      await axiosInstance.put(`orders/${order._id || order.id}`, {
+        is_paid: isPaid,
+      });
+      setOrder((prev: any) => ({ ...prev, isPaid: isPaid }));
+    } catch (error) {
+      console.error("Failed to update paid status:", error);
+    } finally {
+      setUpdating(false);
+    }
+  };
+
+  const handleDeleteOrder = async () => {
+    try {
+      setUpdating(true);
+      await axiosInstance.delete(`orders/${order._id || order.id}`);
+      router.push("/orders");
+    } catch (error) {
+      console.error("Failed to delete order:", error);
+      alert("Failed to delete order");
+    } finally {
+      setUpdating(false);
+      setOpenDeleteModal(false);
+    }
+  };
 
   if (loading) return <Box sx={{ p: 4 }}>Loading order details...</Box>;
   if (!order) return <Box sx={{ p: 4 }}>Order not found.</Box>;
@@ -109,9 +186,18 @@ export default function OrderDetailPage({
             Order Details
           </Typography>
           <Typography variant="body2" color="text.secondary">
-            Summarizing transaction details and item breakdown.
+            Manage order status, payments, and workflow interactions.
           </Typography>
         </Box>
+        <Button
+          variant="outlined"
+          color="error"
+          startIcon={<DeleteIcon />}
+          onClick={() => setOpenDeleteModal(true)}
+          sx={{ borderRadius: "12px", textTransform: "none", fontWeight: "bold" }}
+        >
+          Delete
+        </Button>
         <Button
           variant="contained"
           startIcon={<PrintIcon />}
@@ -181,12 +267,63 @@ export default function OrderDetailPage({
                       Status
                     </Typography>
                     <Chip
-                      label={order.status}
+                      label={ORDER_STATUSES.find(s => s.value === order.orderStatus)?.label || order.orderStatus}
                       size="small"
-                      color={getStatusColor(order.status) as any}
+                      color={getStatusColor(order.orderStatus) as any}
                       sx={{ fontWeight: "bold", borderRadius: "6px" }}
                     />
                   </Stack>
+
+                  <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: "12px" }}>
+                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
+                      Workflow Actions
+                    </Typography>
+                    <Stack spacing={2}>
+                      <FormControl fullWidth size="small">
+                        <InputLabel>Update Status</InputLabel>
+                        <Select
+                          value={order.orderStatus}
+                          label="Update Status"
+                          onChange={(e) => handleUpdateStatus(e.target.value)}
+                          disabled={updating}
+                        >
+                          {ORDER_STATUSES.map((status) => (
+                            <MenuItem key={status.value} value={status.value}>
+                              {status.label}
+                            </MenuItem>
+                          ))}
+                        </Select>
+                      </FormControl>
+
+                      <FormControlLabel
+                        control={
+                          <Switch
+                            checked={order.isPaid}
+                            onChange={handleTogglePaid}
+                            disabled={updating}
+                            color="success"
+                          />
+                        }
+                        label={
+                          <Typography variant="body2" fontWeight="medium">
+                            Payment Received (Is Paid)
+                          </Typography>
+                        }
+                      />
+
+                      {order.paymentProof && (
+                        <Button
+                          variant="outlined"
+                          size="small"
+                          startIcon={<ImageIcon />}
+                          onClick={() => setOpenProofModal(true)}
+                          sx={{ textTransform: "none", borderRadius: "8px" }}
+                        >
+                          View Payment Proof
+                        </Button>
+                      )}
+                    </Stack>
+                  </Box>
                   {order.distributor_id && (
                     <Stack direction="row" justifyContent="space-between">
                       <Typography variant="body2" color="warning.main" fontWeight="bold">
@@ -337,6 +474,46 @@ export default function OrderDetailPage({
           </Card>
         </Grid>
       </Grid>
+      {/* Payment Proof Modal */}
+      <Dialog open={openProofModal} onClose={() => setOpenProofModal(false)} maxWidth="md">
+        <DialogTitle>Payment Proof</DialogTitle>
+        <DialogContent>
+          <img
+            src={`${API_URL}/storage/${order.paymentProof}`}
+            alt="Payment Proof"
+            style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenProofModal(false)}>Close</Button>
+          <Button
+            variant="contained"
+            color="success"
+            onClick={() => {
+              handleUpdateStatus('validated');
+              setOpenProofModal(false);
+            }}
+          >
+            Validate Payment
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={openDeleteModal} onClose={() => setOpenDeleteModal(false)}>
+        <DialogTitle>Delete Order?</DialogTitle>
+        <DialogContent>
+          <Typography>
+            Are you sure you want to delete order #{order.id}? This action cannot be undone.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteModal(false)}>Cancel</Button>
+          <Button onClick={handleDeleteOrder} color="error" variant="contained">
+            Delete Permanently
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

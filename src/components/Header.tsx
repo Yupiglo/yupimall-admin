@@ -29,6 +29,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useSession } from "next-auth/react";
 import axiosInstance from "@/lib/axios";
+import CurrencySelector from "./CurrencySelector";
 
 interface NotificationEntry {
   id: number;
@@ -165,6 +166,8 @@ export default function Header({ onMenuClick, onToggleCollapse, isCollapsed = fa
         <Box sx={{ flexGrow: 1 }} />
 
         <Stack direction="row" spacing={1} alignItems="center">
+          <CurrencySelector />
+
           <IconButton
             sx={{ ml: 1 }}
             onClick={colorMode.toggleColorMode}

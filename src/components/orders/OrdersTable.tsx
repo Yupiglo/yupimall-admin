@@ -15,6 +15,12 @@ import {
   Avatar,
   Stack,
   Tooltip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  DialogContentText,
 } from "@mui/material";
 import {
   Visibility as ViewIcon,
@@ -30,20 +36,35 @@ export default function OrdersTable() {
   const router = useRouter();
   const [orders, setOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  const fetchOrders = async () => {
+    try {
+      const response = await axiosInstance.get("orders/all");
+      setOrders(response.data.orders);
+    } catch (error) {
+      console.error("Failed to fetch orders:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchOrders = async () => {
-      try {
-        const response = await axiosInstance.get("orders/all");
-        setOrders(response.data.orders);
-      } catch (error) {
-        console.error("Failed to fetch orders:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
     fetchOrders();
   }, []);
+
+  const handleDelete = async () => {
+    if (!deleteId) return;
+    try {
+      await axiosInstance.delete(`orders/${deleteId}`);
+      setOrders(prev => prev.filter(o => o._id !== deleteId && o.id !== deleteId));
+    } catch (error) {
+      console.error("Failed to delete order:", error);
+      alert("Failed to delete order");
+    } finally {
+      setDeleteId(null);
+    }
+  };
 
   const getStatusColor = (status: string) => {
     const s = status?.toLowerCase();
@@ -164,7 +185,11 @@ export default function OrdersTable() {
                     </IconButton>
                   </Tooltip>
                   <Tooltip title="Delete">
-                    <IconButton size="small" color="error">
+                    <IconButton
+                      size="small"
+                      color="error"
+                      onClick={() => setDeleteId(order._id || order.id)}
+                    >
                       <DeleteIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
@@ -192,6 +217,21 @@ export default function OrdersTable() {
           )}
         </TableBody>
       </Table>
+
+      <Dialog open={!!deleteId} onClose={() => setDeleteId(null)}>
+        <DialogTitle>Delete Order?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete this order? This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteId(null)}>Cancel</Button>
+          <Button onClick={handleDelete} color="error" variant="contained">
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </TableContainer>
   );
 }

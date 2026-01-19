@@ -5,6 +5,7 @@ import Favicon from "@/assets/Logo/favicon.ico";
 import { PublicEnvScript } from "next-runtime-env";
 import cover from "@/assets/AuthImageCover.svg";
 import NextAuthProvider from "@/components/NextAuthProvider";
+import { CurrencyContextProvider } from "@/helpers/currency/CurrencyContext";
 
 export const metadata: Metadata = {
   title: "YupiFlow Dashboard",
@@ -24,7 +25,9 @@ export default function RootLayout({
       </head>
       <body>
         <NextAuthProvider>
-          <ThemeRegistry>{children}</ThemeRegistry>
+          <CurrencyContextProvider>
+            <ThemeRegistry>{children}</ThemeRegistry>
+          </CurrencyContextProvider>
         </NextAuthProvider>
       </body>
     </html>

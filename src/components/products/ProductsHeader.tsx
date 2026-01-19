@@ -12,6 +12,7 @@ import {
   CardContent,
   Avatar,
   Grid,
+  CircularProgress,
 } from "@mui/material";
 import {
   Search as SearchIcon,
@@ -19,10 +20,24 @@ import {
   FilterList as FilterIcon,
   TrendingUp as TrendingUpIcon,
   Star as StarIcon,
+  Shuffle as ShuffleIcon,
 } from "@mui/icons-material";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AddProductModal from "./AddProductModal";
+import axiosInstance from "@/lib/axios";
+
+interface Category {
+  _id: string;
+  name: string;
+}
+
+interface Subcategory {
+  id: string;
+  _id?: string;
+  name: string;
+  slug?: string;
+}
 
 const bestSellers = [
   {
@@ -51,8 +66,75 @@ const bestSellers = [
   },
 ];
 
-export default function ProductsHeader() {
+type ProductsHeaderProps = {
+  selectedCategory: string;
+  setSelectedCategory: (value: string) => void;
+  selectedSubcategory: string;
+  setSelectedSubcategory: (value: string) => void;
+  selectedStatus: string;
+  setSelectedStatus: (value: string) => void;
+};
+
+export default function ProductsHeader({
+  selectedCategory,
+  setSelectedCategory,
+  selectedSubcategory,
+  setSelectedSubcategory,
+  selectedStatus,
+  setSelectedStatus,
+}: ProductsHeaderProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
+  const [loadingSubs, setLoadingSubs] = useState(false);
+
+  useEffect(() => {
+    fetchCategories();
+  }, []);
+
+  useEffect(() => {
+    if (selectedCategory !== "all") {
+      fetchSubcategories(selectedCategory);
+    } else {
+      setSubcategories([]);
+      setSelectedSubcategory("all");
+    }
+  }, [selectedCategory, setSelectedSubcategory]);
+
+  const fetchCategories = async () => {
+    try {
+      const response = await axiosInstance.get("categories");
+      const cats = response.data.getAllCategories || response.data.categories || response.data || [];
+      setCategories(Array.isArray(cats) ? cats : []);
+    } catch (error) {
+      console.error("Failed to fetch categories:", error);
+    }
+  };
+
+  const fetchSubcategories = async (categoryId: string) => {
+    try {
+      setLoadingSubs(true);
+      const response = await axiosInstance.get(`categories/${categoryId}/subcategories`);
+      const subs = response.data.getAllSubCategories || response.data.subcategories || response.data || [];
+      setSubcategories(Array.isArray(subs) ? subs : []);
+    } catch (error) {
+      console.error("Failed to fetch subcategories:", error);
+    } finally {
+      setLoadingSubs(false);
+    }
+  };
+
+  const handleShuffle = async () => {
+    if (!confirm("Voulez-vous vraiment mélanger l'ordre de TOUS les produits ? Cela affectera l'affichage sur le site.")) return;
+    try {
+      await axiosInstance.post('/products/shuffle');
+      alert("Produits mélangés avec succès ! Rechargement...");
+      window.location.reload(); // Simple reload to reflect changes
+    } catch (error) {
+      console.error("Shuffle failed:", error);
+      alert("Erreur lors du mélange.");
+    }
+  };
 
   return (
     <Box sx={{ mb: 4 }}>
@@ -76,20 +158,40 @@ export default function ProductsHeader() {
             Manage your inventory and product details.
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={() => setIsModalOpen(true)}
-          sx={{
-            py: 1.5,
-            px: 3,
-            borderRadius: "12px",
-            textTransform: "none",
-            fontWeight: "bold",
-          }}
-        >
-          Add Product
-        </Button>
+        <Stack direction="row" spacing={2}>
+          {selectedCategory === "all" && (
+            <Button
+              variant="outlined"
+              startIcon={<ShuffleIcon />}
+              onClick={handleShuffle}
+              sx={{
+                py: 1.5,
+                px: 3,
+                borderRadius: "12px",
+                textTransform: "none",
+                fontWeight: "bold",
+                borderColor: "divider",
+                color: "text.secondary"
+              }}
+            >
+              Mélanger (Shuffle)
+            </Button>
+          )}
+          <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            onClick={() => setIsModalOpen(true)}
+            sx={{
+              py: 1.5,
+              px: 3,
+              borderRadius: "12px",
+              textTransform: "none",
+              fontWeight: "bold",
+            }}
+          >
+            Add Product
+          </Button>
+        </Stack>
       </Stack>
 
       {/* Best Selling Products Stats */}
@@ -160,9 +262,8 @@ export default function ProductsHeader() {
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mt: 4 }}>
         <TextField
-          placeholder="Search products..."
+          placeholder="Rechercher..."
           variant="outlined"
-          fullWidth
           InputProps={{
             startAdornment: (
               <InputAdornment position="start">
@@ -171,18 +272,21 @@ export default function ProductsHeader() {
             ),
           }}
           sx={{
+            minWidth: { md: 200 },
+            maxWidth: { md: 280 },
             "& .MuiOutlinedInput-root": {
               borderRadius: "12px",
               bgcolor: "background.paper",
             },
           }}
         />
-        <Stack direction="row" spacing={2} sx={{ minWidth: { md: 400 } }}>
+        <Stack direction="row" spacing={2} sx={{ flex: 1 }}>
           <TextField
             select
             fullWidth
-            defaultValue="all"
-            label="Category"
+            label="Catégorie"
+            value={selectedCategory}
+            onChange={(e) => setSelectedCategory(e.target.value)}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: "12px",
@@ -190,16 +294,20 @@ export default function ProductsHeader() {
               },
             }}
           >
-            <MenuItem value="all">All Categories</MenuItem>
-            <MenuItem value="electronics">Electronics</MenuItem>
-            <MenuItem value="clothing">Clothing</MenuItem>
-            <MenuItem value="food">Food & Beverage</MenuItem>
+            <MenuItem value="all">Toutes les catégories</MenuItem>
+            {categories.map((cat) => (
+              <MenuItem key={cat._id} value={cat._id}>
+                {cat.name}
+              </MenuItem>
+            ))}
           </TextField>
           <TextField
             select
             fullWidth
-            defaultValue="all"
-            label="Status"
+            label="Sous-catégorie"
+            value={selectedSubcategory || "all"}
+            onChange={(e) => setSelectedSubcategory(e.target.value)}
+            disabled={selectedCategory === "all" || loadingSubs}
             sx={{
               "& .MuiOutlinedInput-root": {
                 borderRadius: "12px",
@@ -207,10 +315,34 @@ export default function ProductsHeader() {
               },
             }}
           >
-            <MenuItem value="all">All Status</MenuItem>
-            <MenuItem value="active">Active</MenuItem>
-            <MenuItem value="out_of_stock">Out of Stock</MenuItem>
-            <MenuItem value="discontinued">Discontinued</MenuItem>
+            <MenuItem value="all">Toutes les sous-catégories</MenuItem>
+            {loadingSubs ? (
+              <MenuItem disabled><CircularProgress size={20} /></MenuItem>
+            ) : (
+              subcategories.map((sub) => (
+                <MenuItem key={sub.id || sub._id} value={sub.id || sub._id}>
+                  {sub.name}
+                </MenuItem>
+              ))
+            )}
+          </TextField>
+          <TextField
+            select
+            fullWidth
+            label="Statut"
+            value={selectedStatus}
+            onChange={(e) => setSelectedStatus(e.target.value)}
+            sx={{
+              "& .MuiOutlinedInput-root": {
+                borderRadius: "12px",
+                bgcolor: "background.paper",
+              },
+            }}
+          >
+            <MenuItem value="all">Tous les statuts</MenuItem>
+            <MenuItem value="in_stock">En stock</MenuItem>
+            <MenuItem value="low_stock">Stock bas</MenuItem>
+            <MenuItem value="out_of_stock">Rupture</MenuItem>
           </TextField>
         </Stack>
       </Stack>

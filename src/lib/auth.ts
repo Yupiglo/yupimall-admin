@@ -49,10 +49,10 @@ export async function refreshAccessToken(token: JWT) {
 
     return {
       ...token,
-      accessToken: response.data.access,
+      accessToken: response.data.access || token.accessToken,
       // Fall back to old refresh token if new one is not returned
       refreshToken: response.data.refresh ?? token.refreshToken,
-      expiresAt: Date.now() + 5 * 60 * 1000,
+      expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
     };
   } catch (error) {
     console.error("Error refreshing access token", error);
@@ -81,8 +81,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           );
 
           if (response.data.status === 200 && response.data.user.token) {
-            // Restriction: Only Super Admin allowed in this panel
-            if (response.data.user.role !== 'super_admin') {
+            // Restriction: Only Super Admin or Admin allowed in this panel
+            if (response.data.user.role !== 'super_admin' && response.data.user.role !== 'admin') {
               return null;
             }
 
@@ -111,7 +111,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         return {
           accessToken: user.access,
           refreshToken: user.refresh,
-          expiresAt: Date.now() + 5 * 60 * 1000,
+          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 Days
           role: user.role,
           country: user.country,
           supervisorId: user.supervisorId,

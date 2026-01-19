@@ -25,6 +25,8 @@ import {
 import { useRouter } from "next/navigation";
 import { useState, useEffect, useCallback } from "react";
 import axios from "@/lib/axios";
+import { useContext } from "react";
+import { CurrencyContext } from "@/helpers/currency/CurrencyContext";
 
 interface StockEntry {
   id: number;
@@ -61,6 +63,7 @@ export default function EntriesTable({ searchQuery = "", refreshTrigger = 0 }: E
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [deleting, setDeleting] = useState<number | null>(null);
+  const { selectedCurr } = useContext(CurrencyContext);
 
   const fetchEntries = useCallback(async () => {
     try {
@@ -113,10 +116,15 @@ export default function EntriesTable({ searchQuery = "", refreshTrigger = 0 }: E
 
   const formatPrice = (price: string | null) => {
     if (!price) return "-";
-    return new Intl.NumberFormat("fr-FR", {
-      style: "currency",
-      currency: "XOF",
-    }).format(parseFloat(price));
+    const converted = parseFloat(price) * selectedCurr.value;
+
+    // For currencies like FCFA or Naira, show as integer (no decimals)
+    if (selectedCurr.symbol === "FCFA" || selectedCurr.symbol === "₦") {
+      return `${Math.round(converted).toLocaleString()} ${selectedCurr.symbol}`;
+    }
+
+    // For others, keep decimals
+    return `${selectedCurr.symbol}${converted.toFixed(2)}`;
   };
 
   if (loading) {

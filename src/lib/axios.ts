@@ -9,9 +9,16 @@ const axiosInstance = axios.create({
   },
 });
 
+let sessionPromise: Promise<any> | null = null;
+
 axiosInstance.interceptors.request.use(async (config) => {
-  // Get token from NextAuth session
-  const session = await getSession();
+  if (!sessionPromise) {
+    sessionPromise = getSession();
+    // Allow refreshing the session promise every 10 seconds
+    setTimeout(() => { sessionPromise = null; }, 10000);
+  }
+
+  const session = await sessionPromise;
   if (session?.accessToken) {
     config.headers.Authorization = `Bearer ${session.accessToken}`;
   }

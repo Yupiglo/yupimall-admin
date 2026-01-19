@@ -31,15 +31,21 @@ export default function RecentRegistrations() {
     const fetchUsers = async () => {
       try {
         const response = await axiosInstance.get("users");
-        const allUsers = response.data.users || response.data || [];
-        // Sort by created_at descending and take 5 most recent
-        const sorted = allUsers
-          .sort(
-            (a: User, b: User) =>
-              new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
-          )
-          .slice(0, 5);
-        setUsers(sorted);
+        const allUsers = response.data.getAllUsers || response.data.users || response.data || [];
+
+        // Ensure allUsers is an array before sorting
+        if (Array.isArray(allUsers)) {
+          const sorted = [...allUsers] // Create a copy to avoid mutating original
+            .sort(
+              (a: User, b: User) =>
+                new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+            )
+            .slice(0, 5);
+          setUsers(sorted);
+        } else {
+          console.error("Data received for users is not an array:", allUsers);
+          setUsers([]);
+        }
       } catch (error) {
         console.error("Failed to fetch users:", error);
       } finally {
