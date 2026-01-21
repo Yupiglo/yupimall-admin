@@ -4,6 +4,13 @@ import axios from "axios";
 import { type DefaultSession } from "next-auth";
 import { type JWT } from "next-auth/jwt";
 
+const getBaseUrl = () => {
+  const url = process.env.NEXT_PUBLIC_API_URL || "https://api.yupimall.net";
+  return url.replace(/\/$/, "");
+};
+
+const baseUrl = getBaseUrl();
+
 declare module "next-auth" {
   interface Session {
     accessToken?: string;
@@ -40,10 +47,17 @@ declare module "next-auth/jwt" {
 
 export async function refreshAccessToken(token: JWT) {
   try {
+    console.log("AUTH_DEBUG: Refreshing token at", `${baseUrl}/api/v1/auth/refresh-token/`);
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh-token/`,
+      `${baseUrl}/api/v1/auth/refresh-token/`,
       {
         refresh: token.refreshToken,
+      },
+      {
+        headers: {
+          "Accept": "application/json",
+          "Content-Type": "application/json",
+        },
       }
     );
 
@@ -72,19 +86,33 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
       authorize: async (credentials) => {
         try {
+          console.log("AUTH_DEBUG: Attempting signin for", credentials?.email, "at", `${baseUrl}/api/v1/auth/signin`);
+
           const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/signin`,
+            `${baseUrl}/api/v1/auth/signin`,
             {
               username: credentials.email,
               password: credentials.password,
+            },
+            {
+              headers: {
+                "Accept": "application/json",
+                "Content-Type": "application/json",
+              },
             }
           );
 
+          console.log("AUTH_DEBUG: Response status:", response.data.status);
+
           if (response.data.status === 200 && response.data.user.token) {
+            console.log("AUTH_DEBUG: User role:", response.data.user.role);
             // Restriction: Only Super Admin or Admin allowed in this panel
             if (response.data.user.role !== 'super_admin' && response.data.user.role !== 'admin') {
+              console.log("AUTH_DEBUG: Access denied - role mismatch (expected admin/super_admin)");
               return null;
             }
+
+            console.log("AUTH_DEBUG: Authentication successful for", response.data.user.username);
 
             return {
               id: response.data.user.id.toString(),
@@ -97,9 +125,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
               supervisorId: response.data.user.supervisor_id?.toString(),
             };
           }
+          console.log("AUTH_DEBUG: Authentication failed - Invalid status or missing token");
           return null;
-        } catch (error) {
-          console.error("Authorize error:", error);
+        } catch (error: any) {
+          console.error("AUTH_DEBUG: Authorize error:", error.response?.status, error.response?.data || error.message);
           return null;
         }
       },
