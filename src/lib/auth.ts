@@ -41,7 +41,7 @@ declare module "next-auth/jwt" {
 export async function refreshAccessToken(token: JWT) {
   try {
     const response = await axios.post(
-      `${process.env.NEXT_PUBLIC_API_URL}api/v1/auth/refresh-token/`,
+      `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/refresh-token/`,
       {
         refresh: token.refreshToken,
       }
@@ -73,7 +73,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       authorize: async (credentials) => {
         try {
           const response = await axios.post(
-            `${process.env.NEXT_PUBLIC_API_URL}api/v1/auth/signin`,
+            `${process.env.NEXT_PUBLIC_API_URL}/api/v1/auth/signin`,
             {
               username: credentials.email,
               password: credentials.password,
