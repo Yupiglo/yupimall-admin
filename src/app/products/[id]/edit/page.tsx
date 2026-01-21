@@ -34,8 +34,8 @@ import {
 } from "@mui/icons-material";
 import axiosInstance from "@/lib/axios";
 import { CircularProgress } from "@mui/material";
+import { getImagePath } from "@/helpers/utils/image.utils";
 
-const API_URL = "http://localhost:8000";
 
 interface Category {
   _id: string;
@@ -784,7 +784,7 @@ export default function ProductEditPage({
                     <Grid key={idx} size={{ xs: 4 }}>
                       <Box sx={{ position: "relative", pt: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
                         <img
-                          src={img.startsWith('http') ? img : `${API_URL}/${img.startsWith('/') ? img.substring(1) : img}`}
+                          src={getImagePath(img)}
                           alt="product"
                           style={{ position: "absolute", top: 0, left: 0, width: "100%", height: "100%", objectFit: "cover" }}
                         />

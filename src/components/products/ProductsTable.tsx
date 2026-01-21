@@ -31,6 +31,7 @@ import {
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
 import { CurrencyContext } from "@/helpers/currency/CurrencyContext";
+import { getImagePath } from "@/helpers/utils/image.utils";
 
 interface Product {
   _id: string;
@@ -298,11 +299,7 @@ export default function ProductsTable({
             )}
             {filteredProducts.map((product) => {
               const status = getStockStatus(product.quantity);
-              const imageUrl = product.imgCover
-                ? product.imgCover.startsWith("http")
-                  ? product.imgCover
-                  : `/${product.imgCover.replace(/^\/?/, '')}`
-                : undefined;
+              const imageUrl = getImagePath(product.imgCover);
 
               return (
                 <TableRow
