@@ -57,11 +57,11 @@ export default function CustomersTable() {
         } else if (response.data?.data && Array.isArray(response.data.data)) {
           allUsers = response.data.data;
         }
-        // Filter only consumer role users
-        const consumers = allUsers.filter(
-          (u: User) => u.role === "consumer" || !u.role
+        // Filter users (excluding super\_admin, dev, webmaster to keep it focused on external roles)
+        const relevantUsers = allUsers.filter(
+          (u: User) => ["consumer", "warehouse", "stockist"].includes(u.role) || !u.role
         );
-        setCustomers(consumers);
+        setCustomers(relevantUsers);
       } catch (err: any) {
         console.error("Failed to fetch customers:", err);
         setError("Impossible de charger les clients");

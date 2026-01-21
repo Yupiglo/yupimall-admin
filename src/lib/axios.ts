@@ -19,6 +19,11 @@ axiosInstance.interceptors.request.use(async (config) => {
   }
 
   const session = await sessionPromise;
+  if (session?.error === "RefreshAccessTokenError") {
+    if (typeof window !== "undefined") {
+      window.location.href = "/logout";
+    }
+  }
   if (session?.accessToken) {
     config.headers.Authorization = `Bearer ${session.accessToken}`;
   }
@@ -28,8 +33,11 @@ axiosInstance.interceptors.request.use(async (config) => {
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error: any) => {
-    if (error.response && error.response?.status === 401) {
-      console.error("Unauthorized - session may have expired");
+    if (error.response && error.response.status === 401) {
+      console.error(`Unauthorized access attempt: ${error.config?.url} - redirecting to /logout`);
+      if (typeof window !== "undefined") {
+        window.location.href = "/logout";
+      }
     }
     return Promise.reject(error);
   }

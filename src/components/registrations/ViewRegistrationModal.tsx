@@ -39,6 +39,7 @@ interface Registration {
     plan: string;
     payment_method: string;
     status: string;
+    requested_role: string;
     created_at: string;
 }
 
@@ -117,6 +118,13 @@ export default function ViewRegistrationModal({
                                     bgcolor: registration.plan.toLowerCase() === 'platinum' ? 'info.main' : 'warning.main',
                                     color: 'white'
                                 }}
+                            />
+                            <Chip
+                                label={registration.requested_role === 'warehouse' ? 'Warehouse' : 'Stockist'}
+                                size="small"
+                                variant="outlined"
+                                color={registration.requested_role === 'warehouse' ? 'secondary' : 'default'}
+                                sx={{ borderRadius: "6px", fontWeight: "bold", fontSize: "0.75rem" }}
                             />
                         </Stack>
                     </Box>

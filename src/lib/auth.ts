@@ -142,5 +142,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     signOut: "/logout",
   },
   session: { strategy: "jwt" },
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token.admin`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: process.env.NODE_ENV === "production",
+      },
+    },
+  },
   secret: process.env.AUTH_SECRET,
 });

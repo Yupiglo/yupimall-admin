@@ -53,12 +53,11 @@ export default function LoginPage() {
       });
 
       if (result?.error) {
-        // setError("Invalid email or password");
-        // setIsLoading(false);
-        router.push("/dashboard");
+        setError("Invalid email or password");
+        setIsLoading(false);
       } else {
         // Successful login
-        // router.refresh(); // Update session state
+        router.refresh(); // Update session state
         router.push("/dashboard"); // Redirect to dashboard/home
       }
     } catch (err) {

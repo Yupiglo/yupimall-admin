@@ -137,7 +137,9 @@ export default function TopProductSales() {
                                             product.imgCover
                                                 ? product.imgCover.startsWith("http")
                                                     ? product.imgCover
-                                                    : `${process.env.NEXT_PUBLIC_API_URL}/${product.imgCover}`
+                                                    : product.imgCover.startsWith("/")
+                                                        ? product.imgCover
+                                                        : `/${product.imgCover}`
                                                 : undefined
                                         }
                                         sx={{

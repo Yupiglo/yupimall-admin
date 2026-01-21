@@ -31,6 +31,7 @@ interface Registration {
     plan: string;
     payment_method: string;
     status: string;
+    requested_role: string;
     created_at: string;
 }
 
@@ -59,6 +60,7 @@ export default function EditRegistrationModal({
         plan: "",
         payment_method: "",
         status: "",
+        requested_role: "",
     });
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -77,6 +79,7 @@ export default function EditRegistrationModal({
                 plan: registration.plan,
                 payment_method: registration.payment_method,
                 status: registration.status,
+                requested_role: registration.requested_role || "stockist",
             });
         }
     }, [registration]);
@@ -182,6 +185,19 @@ export default function EditRegistrationModal({
                             <MenuItem value="pending">En attente</MenuItem>
                             <MenuItem value="approved">Approuvé</MenuItem>
                             <MenuItem value="rejected">Refusé</MenuItem>
+                        </TextField>
+                    </Grid>
+                    <Grid size={{ xs: 12, sm: 6 }}>
+                        <TextField
+                            name="requested_role"
+                            select
+                            label="Rôle Demandé"
+                            fullWidth
+                            value={formData.requested_role}
+                            onChange={handleChange}
+                        >
+                            <MenuItem value="stockist">Stockist</MenuItem>
+                            <MenuItem value="warehouse">Warehouse</MenuItem>
                         </TextField>
                     </Grid>
                     <Grid size={{ xs: 12, sm: 6 }}>

@@ -45,6 +45,7 @@ interface Registration {
     plan: string;
     payment_method: string;
     status: string;
+    requested_role: string;
     created_at: string;
 }
 
@@ -202,6 +203,7 @@ export default function RegistrationsTable({
                             <TableCell sx={{ fontWeight: "bold" }}>Client</TableCell>
                             <TableCell sx={{ fontWeight: "bold" }}>Pack</TableCell>
                             <TableCell sx={{ fontWeight: "bold" }}>Paiement</TableCell>
+                            <TableCell sx={{ fontWeight: "bold" }}>Rôle</TableCell>
                             <TableCell sx={{ fontWeight: "bold" }}>Statut</TableCell>
                             <TableCell sx={{ fontWeight: "bold" }}>Date</TableCell>
                             <TableCell align="right" sx={{ fontWeight: "bold" }}>
@@ -212,7 +214,7 @@ export default function RegistrationsTable({
                     <TableBody>
                         {filteredRegistrations.length === 0 && (
                             <TableRow>
-                                <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
+                                <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                                     <Typography color="text.secondary">
                                         Aucune inscription trouvée
                                     </Typography>
@@ -262,6 +264,15 @@ export default function RegistrationsTable({
                                     <Typography variant="body2" color="text.primary" sx={{ textTransform: "capitalize" }}>
                                         {reg.payment_method.replace("_", " ")}
                                     </Typography>
+                                </TableCell>
+                                <TableCell>
+                                    <Chip
+                                        label={reg.requested_role === 'warehouse' ? 'Warehouse' : 'Stockist'}
+                                        size="small"
+                                        variant="outlined"
+                                        color={reg.requested_role === 'warehouse' ? 'secondary' : 'default'}
+                                        sx={{ borderRadius: "6px", fontWeight: "bold", fontSize: "0.65rem" }}
+                                    />
                                 </TableCell>
                                 <TableCell>{getStatusChip(reg.status)}</TableCell>
                                 <TableCell sx={{ color: "text.secondary", fontSize: "0.85rem" }}>
