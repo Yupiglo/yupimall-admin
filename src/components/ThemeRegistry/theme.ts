@@ -1,7 +1,19 @@
 import { createTheme, PaletteMode } from "@mui/material/styles";
+
+declare module '@mui/material/styles' {
+  interface Palette {
+    tertio: Palette['primary'];
+  }
+  interface PaletteOptions {
+    tertio?: PaletteOptions['primary'];
+  }
+  interface TypeText {
+    tertio: string;
+  }
+}
 import { Figtree } from "next/font/google";
 
-const figtree= Figtree({
+const figtree = Figtree({
   weight: ["300", "400", "500", "700"],
   subsets: ["latin"],
   display: "swap",
@@ -31,27 +43,27 @@ const getTheme = (mode: PaletteMode) =>
       },
       ...(mode === "light"
         ? {
-            background: {
-              default: "#f7f9fa",
-              paper: "#ffffff",
-            },
-            text: {
-              primary: "#111827",
-              secondary: "#6B7280",
-              tertio: "#000000",
-            },
-          }
+          background: {
+            default: "#f7f9fa",
+            paper: "#ffffff",
+          },
+          text: {
+            primary: "#111827",
+            secondary: "#6B7280",
+            tertio: "#000000",
+          },
+        }
         : {
-            background: {
-              default: "#121212",
-              paper: "#1e1e1e",
-            },
-            text: {
-              primary: "#ffffff",
-              secondary: "#bbbbbb",
-              tertio: "#ffffff"
-            },
-          }),
+          background: {
+            default: "#121212",
+            paper: "#1e1e1e",
+          },
+          text: {
+            primary: "#ffffff",
+            secondary: "#bbbbbb",
+            tertio: "#ffffff"
+          },
+        }),
     },
     typography: {
       fontFamily: figtree.style.fontFamily,
