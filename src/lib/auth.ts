@@ -106,9 +106,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
           if (response.data.status === 200 && response.data.user.token) {
             console.log("AUTH_DEBUG: User role:", response.data.user.role);
-            // Restriction: Only Super Admin or Admin allowed in this panel
-            if (response.data.user.role !== 'super_admin' && response.data.user.role !== 'admin') {
-              console.log("AUTH_DEBUG: Access denied - role mismatch (expected admin/super_admin)");
+            // Restriction: Only Admin or Dev allowed in this panel
+            if (response.data.user.role !== 'admin' && response.data.user.role !== 'dev') {
+              console.log("AUTH_DEBUG: Access denied - role mismatch (expected admin/dev)");
               return null;
             }
 

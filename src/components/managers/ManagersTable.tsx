@@ -134,7 +134,7 @@ export default function ManagersTable({ searchQuery = "", onStatsUpdate }: Manag
     switch (role) {
       case "dev":
         return "secondary";
-      case "super_admin":
+      case "admin":
         return "error";
       case "webmaster":
         return "warning";
@@ -152,7 +152,7 @@ export default function ManagersTable({ searchQuery = "", onStatsUpdate }: Manag
   const getRoleLabel = (role: string) => {
     const labels: Record<string, string> = {
       dev: "Developer",
-      super_admin: "Super Admin",
+      admin: "Admin",
       webmaster: "Webmaster",
       stockist: "Stockist",
       warehouse: "Warehouse",

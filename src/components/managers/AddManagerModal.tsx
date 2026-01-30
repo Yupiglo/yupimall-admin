@@ -25,7 +25,7 @@ interface AddManagerModalProps {
 
 const ROLES = [
   { value: "dev", label: "Developer", description: "Full system access" },
-  { value: "super_admin", label: "Super Admin", description: "Administrative access" },
+  { value: "admin", label: "Admin", description: "Administrative access" },
   { value: "webmaster", label: "Webmaster", description: "Website management" },
   { value: "stockist", label: "Stockist", description: "Inventory management" },
   { value: "warehouse", label: "Warehouse", description: "Warehouse operations" },

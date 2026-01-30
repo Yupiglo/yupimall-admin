@@ -76,7 +76,6 @@ export default function CustomersTable() {
   const getRoleColor = (role: string) => {
     switch (role) {
       case "admin":
-      case "super_admin":
         return "error";
       case "webmaster":
         return "warning";
