@@ -24,6 +24,7 @@ import {
   Security as SecurityIcon,
   MyLocation as LocationIcon,
 } from "@mui/icons-material";
+import { useSession } from "next-auth/react";
 import axiosInstance from "@/lib/axios";
 
 interface UserProfile {
@@ -35,10 +36,11 @@ interface UserProfile {
   address?: string;
   city?: string;
   country?: string;
-  location?: string; // Maps URL or similar
+  location?: string;
 }
 
 export default function ProfileDetails() {
+  const { data: session, update } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [formData, setFormData] = useState<UserProfile>({
@@ -86,6 +88,16 @@ export default function ProfileDetails() {
     setSaving(true);
     try {
       await axiosInstance.put("me", formData);
+
+      // Update NextAuth session to reflect change in Header (especially name)
+      await update({
+        ...session,
+        user: {
+          ...session?.user,
+          name: formData.name,
+        },
+      });
+
       setNotification({ open: true, message: "Profile updated successfully!", severity: "success" });
     } catch (error) {
       console.error("Failed to update profile:", error);
