@@ -61,7 +61,7 @@ export default function ManagersHeader({
     {
       id: 2,
       label: "Admins",
-      value: ((stats?.byRole?.super_admin || 0) + (stats?.byRole?.dev || 0)).toString(),
+      value: ((stats?.byRole?.admin || 0) + (stats?.byRole?.dev || 0)).toString(),
       icon: <AdminIcon />,
       color: "error",
     },
