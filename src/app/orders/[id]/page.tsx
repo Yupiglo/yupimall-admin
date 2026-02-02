@@ -37,7 +37,7 @@ import {
 import { useSearchParams } from "next/navigation";
 import { useEffect, useContext } from "react";
 import Link from "next/link";
-import { LinksEnum } from "@/utilities/pagesLInksEnum";
+import { LinksEnum } from "@/utilities/pagesLinksEnum";
 import { CurrencyContext } from "@/helpers/currency/CurrencyContext";
 
 import { useOrderDetail } from "@/hooks/useOrderDetail";
@@ -360,13 +360,13 @@ export default function OrderDetailPage({
                 </Stack>
 
                 <Stack spacing={2}>
-                  {order.customerPhone && (
+                  {order.shippingAddress?.phone && (
                     <Stack direction="row" spacing={2} alignItems="center">
                       <Box sx={{ p: 1, bgcolor: "grey.100", borderRadius: "10px" }}>
                         <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
                       </Box>
                       <Typography variant="body2" fontWeight="600">
-                        {order.customerPhone}
+                        {order.shippingAddress?.phone}
                       </Typography>
                     </Stack>
                   )}
@@ -410,14 +410,14 @@ export default function OrderDetailPage({
                     </Box>
                     <Box>
                       <Typography variant="body2" fontWeight="800">
-                        {order.shippingCity || 'Ville non spécifiée'}
+                        {order.shippingAddress?.city || 'Ville non spécifiée'}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
-                        {order.shippingCountry || 'Pays non spécifié'}
+                        {order.shippingAddress?.country || 'Pays non spécifié'}
                       </Typography>
-                      {order.shippingStreet && (
+                      {order.shippingAddress?.street && (
                         <Typography variant="caption" color="text.secondary">
-                          {order.shippingStreet}
+                          {order.shippingAddress?.street}
                         </Typography>
                       )}
                     </Box>
