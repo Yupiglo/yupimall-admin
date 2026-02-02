@@ -42,5 +42,8 @@ USER nextjs
 EXPOSE 3000
 
 ENV PORT=3000
+ENV NEXT_PUBLIC_BACKEND_ORIGIN=https://api.yupimall.net
+ENV NEXT_PUBLIC_API_URL=https://api.yupimall.net
+ENV NEXT_PUBLIC_API_BASE_URL=https://api.yupimall.net/api/v1
 
 CMD ["npm", "start"]
