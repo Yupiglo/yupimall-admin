@@ -13,42 +13,35 @@ import {
   Chip,
   Divider,
   Grid,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
+  Breadcrumbs,
+  Avatar,
+  Paper,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
-  Print as PrintIcon,
+  Home as HomeIcon,
+  ChevronRight as ChevronRightIcon,
   Receipt as OrderIcon,
   Person as CustomerIcon,
-  CalendarToday as DateIcon,
-  AttachMoney as TotalIcon,
   LocalShipping as ShippingIcon,
-  Delete as DeleteIcon,
-  CheckCircle as ValidIcon,
-  Image as ImageIcon,
-  ExpandMore as ExpandMoreIcon,
+  Phone as PhoneIcon,
+  Email as EmailIcon,
+  LocationOn as LocationIcon,
+  CalendarToday as CalendarIcon,
+  Inventory as InventoryIcon,
+  Print as PrintIcon,
+  Edit as EditIcon,
+  CheckCircle as ValidateIcon,
 } from "@mui/icons-material";
-import {
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
-  Switch,
-  FormControlLabel,
-  Dialog,
-  DialogTitle,
-  DialogContent,
-  DialogActions,
-} from "@mui/material";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect, useState } from "react";
-import axiosInstance from "@/lib/axios";
+import { useEffect, useContext } from "react";
+import Link from "next/link";
+import { LinksEnum } from "@/utilities/pagesLInksEnum";
+import { CurrencyContext } from "@/helpers/currency/CurrencyContext";
+
+import { useOrderDetail } from "@/hooks/useOrderDetail";
+import { CircularProgress } from "@mui/material";
 
 export default function OrderDetailPage({
   params,
@@ -60,106 +53,41 @@ export default function OrderDetailPage({
   const resolvedParams = use(params);
   const { id } = resolvedParams;
   const decodedId = decodeURIComponent(id);
-  const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  const [order, setOrder] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
-  const [openProofModal, setOpenProofModal] = useState(false);
-  const [openDeleteModal, setOpenDeleteModal] = useState(false);
+  const { order, loading, updating, updateStatus } = useOrderDetail(decodedId);
+  const currencyContext = useContext(CurrencyContext) as { selectedCurr?: { value: number; symbol: string } } | null;
+  const currValue = currencyContext?.selectedCurr?.value ?? 1;
+  const currSymbol = currencyContext?.selectedCurr?.symbol ?? '$';
 
-  // 8-Role Workflow Statuses
-  const ORDER_STATUSES = [
-    { value: "pending", label: "Pending (En attente)" },
-    { value: "validated", label: "Validated (Validé - Info Warehouse)" },
-    { value: "reached_warehouse", label: "Reached Warehouse (Arrivé Warehouse)" },
-    { value: "shipped_to_stockist", label: "Shipped to Stockist (En route Stockiste)" },
-    { value: "reached_stockist", label: "Reached Stockist (Arrivé Stockiste)" },
-    { value: "out_for_delivery", label: "Out for Delivery (En Livraison)" },
-    { value: "delivered", label: "Delivered (Livré)" },
-    { value: "canceled", label: "Canceled (Annulé)" },
-  ];
-
-  const fetchOrder = async () => {
-    try {
-      const response = await axiosInstance.get(`orders/${decodedId}`);
-      setOrder(response.data.order);
-    } catch (error) {
-      console.error("Failed to fetch order details:", error);
-    } finally {
-      setLoading(false);
+  const formatPrice = (priceUSD: number) => {
+    const converted = priceUSD * currValue;
+    if (currSymbol === "FCFA" || currSymbol === "₦") {
+      return `${Math.round(converted).toLocaleString()} ${currSymbol}`;
     }
+    return `${currSymbol}${converted.toFixed(2)}`;
   };
-
-  useEffect(() => {
-    fetchOrder();
-  }, [decodedId]);
 
   useEffect(() => {
     if (searchParams.get("print") === "true") {
-      window.print();
+      setTimeout(() => window.print(), 500);
     }
   }, [searchParams]);
 
-  const handleUpdateStatus = async (newStatus: string) => {
-    try {
-      setUpdating(true);
-      await axiosInstance.put(`orders/${order._id || order.id}`, {
-        order_status: newStatus,
-      });
-      fetchOrder(); // Refresh to get updated state/metadata if any
-    } catch (error) {
-      console.error("Failed to update status:", error);
-      alert("Failed to update status");
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleTogglePaid = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    try {
-      const isPaid = e.target.checked;
-      setUpdating(true);
-      await axiosInstance.put(`orders/${order._id || order.id}`, {
-        is_paid: isPaid,
-      });
-      setOrder((prev: any) => ({ ...prev, isPaid: isPaid }));
-    } catch (error) {
-      console.error("Failed to update paid status:", error);
-    } finally {
-      setUpdating(false);
-    }
-  };
-
-  const handleDeleteOrder = async () => {
-    try {
-      setUpdating(true);
-      await axiosInstance.delete(`orders/${order._id || order.id}`);
-      router.push("/orders");
-    } catch (error) {
-      console.error("Failed to delete order:", error);
-      alert("Failed to delete order");
-    } finally {
-      setUpdating(false);
-      setOpenDeleteModal(false);
-    }
-  };
-
-  if (loading) return <Box sx={{ p: 4 }}>Loading order details...</Box>;
-  if (!order) return <Box sx={{ p: 4 }}>Order not found.</Box>;
-
   const getStatusColor = (status: string) => {
-    const s = status?.toLowerCase();
-    switch (s) {
+    switch (status?.toLowerCase()) {
+      case "pending":
+        return "warning";
+      case "validated":
+        return "info";
+      case "reached_warehouse":
+      case "shipped_to_stockist":
+      case "reached_stockist":
+        return "primary";
+      case "out_for_delivery":
+        return "secondary";
       case "delivered":
       case "completed":
         return "success";
-      case "pending":
-        return "warning";
-      case "processing":
-      case "shipped":
-      case "paid":
-        return "info";
       case "cancelled":
         return "error";
       default:
@@ -167,353 +95,485 @@ export default function OrderDetailPage({
     }
   };
 
-  return (
-    <Box sx={{ flexGrow: 1 }}>
-      <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 4 }}>
-        <IconButton
-          onClick={() => router.push("/orders")}
-          sx={{
-            bgcolor: "background.paper",
-            border: "1px solid",
-            borderColor: "divider",
-            borderRadius: "12px",
-          }}
-        >
-          <BackIcon />
-        </IconButton>
-        <Box sx={{ flexGrow: 1 }}>
-          <Typography variant="h4" fontWeight="bold" color="primary.main">
-            Order Details
-          </Typography>
-          <Typography variant="body2" color="text.secondary">
-            Manage order status, payments, and workflow interactions.
-          </Typography>
-        </Box>
-        <Button
-          variant="outlined"
-          color="error"
-          startIcon={<DeleteIcon />}
-          onClick={() => setOpenDeleteModal(true)}
-          sx={{ borderRadius: "12px", textTransform: "none", fontWeight: "bold" }}
-        >
-          Delete
-        </Button>
-        <Button
-          variant="contained"
-          startIcon={<PrintIcon />}
-          onClick={() => window.print()}
-          sx={{
-            borderRadius: "12px",
-            textTransform: "none",
-            fontWeight: "bold",
-            px: 3,
-            boxShadow: "none",
-          }}
-        >
-          Print Order
-        </Button>
-      </Stack>
+  const getStatusLabel = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "pending": return "En attente";
+      case "validated": return "Validée";
+      case "reached_warehouse": return "Au dépôt";
+      case "shipped_to_stockist": return "En transit";
+      case "reached_stockist": return "Chez stockiste";
+      case "out_for_delivery": return "En livraison";
+      case "delivered": return "Livrée";
+      case "completed": return "Terminée";
+      case "cancelled": return "Annulée";
+      default: return status || "Inconnu";
+    }
+  };
 
-      <Grid container spacing={4}>
-        <Grid size={{ xs: 12, md: 4 }}>
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (!order) {
+    return (
+      <Box sx={{ p: 4, textAlign: 'center' }}>
+        <Typography variant="h5" color="text.secondary" gutterBottom>Commande introuvable</Typography>
+        <Button variant="contained" onClick={() => router.push(LinksEnum.orders)} sx={{ mt: 2, borderRadius: 3 }}>
+          Retour aux commandes
+        </Button>
+      </Box>
+    );
+  }
+
+  return (
+    <Box sx={{ p: { xs: 2, md: 3 }, maxWidth: 1400, mx: 'auto' }}>
+      {/* Breadcrumbs Header */}
+      <Box sx={{ mb: 4 }}>
+        <Breadcrumbs
+          separator={<ChevronRightIcon sx={{ fontSize: "1rem", color: "text.disabled" }} />}
+          aria-label="breadcrumb"
+          sx={{ mb: 3 }}
+        >
+          <Stack direction="row" alignItems="center" spacing={0.5}>
+            <HomeIcon sx={{ fontSize: "1.1rem", color: "primary.main" }} />
+            <Typography variant="body2" fontWeight="500" color="text.secondary">
+              Accueil
+            </Typography>
+          </Stack>
+          <Link href={LinksEnum.orders} style={{ textDecoration: "none", color: "inherit" }}>
+            <Typography variant="body2" fontWeight="500" sx={{ color: "text.secondary", "&:hover": { color: "primary.main" } }}>
+              Commandes
+            </Typography>
+          </Link>
+          <Typography variant="body2" fontWeight="600" color="text.primary">
+            Détail
+          </Typography>
+        </Breadcrumbs>
+
+        {/* Header with actions */}
+        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} alignItems={{ xs: 'flex-start', sm: 'center' }} justifyContent="space-between">
+          <Stack direction="row" spacing={2} alignItems="center">
+            <IconButton
+              onClick={() => router.push(LinksEnum.orders)}
+              sx={{
+                bgcolor: "background.paper",
+                border: "1px solid",
+                borderColor: "divider",
+                borderRadius: "14px",
+                p: 1.5,
+                boxShadow: "0 4px 12px rgba(0,0,0,0.05)",
+                "&:hover": { bgcolor: "primary.main", color: "white" },
+              }}
+            >
+              <BackIcon />
+            </IconButton>
+            <Box>
+              <Typography
+                variant="h4"
+                fontWeight="900"
+                sx={{
+                  background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                  WebkitBackgroundClip: "text",
+                  WebkitTextFillColor: "transparent",
+                  letterSpacing: -0.5,
+                }}
+              >
+                #{order.trackingCode}
+              </Typography>
+              <Typography variant="body2" color="text.secondary" fontWeight="600">
+                Détail de la commande
+              </Typography>
+            </Box>
+          </Stack>
+
+          <Stack direction="row" spacing={1.5} flexWrap="wrap">
+            <Button
+              variant="outlined"
+              startIcon={<PrintIcon />}
+              onClick={() => window.print()}
+              sx={{ borderRadius: '12px', px: 2.5 }}
+            >
+              Imprimer
+            </Button>
+            <Button
+              variant="outlined"
+              startIcon={<EditIcon />}
+              onClick={() => router.push(`${LinksEnum.orders}/${id}/edit`)}
+              sx={{ borderRadius: '12px', px: 2.5 }}
+            >
+              Modifier
+            </Button>
+            {order.status === 'pending' && (
+              <Button
+                variant="contained"
+                color="success"
+                disabled={updating}
+                startIcon={<ValidateIcon />}
+                onClick={() => updateStatus('validated')}
+                sx={{ borderRadius: '12px', px: 3 }}
+              >
+                {updating ? <CircularProgress size={20} /> : 'Valider'}
+              </Button>
+            )}
+          </Stack>
+        </Stack>
+      </Box>
+
+      {/* Main Grid Layout */}
+      <Grid container spacing={3}>
+        {/* Left Column - Order Summary & Customer */}
+        <Grid size={{ xs: 12, lg: 4 }}>
           <Stack spacing={3}>
+            {/* Order Summary Card */}
             <Card
               elevation={0}
               sx={{
-                borderRadius: "20px",
+                borderRadius: "24px",
                 border: "1px solid",
                 borderColor: "divider",
+                overflow: 'hidden',
               }}
             >
-              <CardContent sx={{ p: 4 }}>
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  alignItems="center"
-                  sx={{ mb: 3 }}
-                >
-                  <OrderIcon color="primary" />
-                  <Typography variant="h6" fontWeight="bold">
-                    Order Summary
+              {/* Status Header */}
+              <Box
+                sx={{
+                  p: 3,
+                  background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.primary.dark} 100%)`,
+                  color: 'white',
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Typography variant="subtitle2" fontWeight="600" sx={{ opacity: 0.8 }}>
+                    Statut actuel
                   </Typography>
+                  <Chip
+                    label={getStatusLabel(order.status)}
+                    size="small"
+                    sx={{
+                      fontWeight: "800",
+                      fontSize: "0.7rem",
+                      borderRadius: "8px",
+                      textTransform: "uppercase",
+                      bgcolor: "rgba(255,255,255,0.2)",
+                      color: "white",
+                      backdropFilter: "blur(10px)",
+                    }}
+                  />
                 </Stack>
+              </Box>
+
+              <CardContent sx={{ p: 3 }}>
                 <Stack spacing={2.5}>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Order ID
-                    </Typography>
-                    <Typography variant="body2" fontWeight="bold">
-                      {order.id}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Date
-                    </Typography>
-                    <Typography variant="body2" fontWeight="medium">
-                      {order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'N/A'}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Payment
-                    </Typography>
-                    <Typography variant="body2" fontWeight="medium" sx={{ textTransform: 'capitalize' }}>
-                      {order.payment_method || 'N/A'}
-                    </Typography>
-                  </Stack>
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="body2" color="text.secondary">
-                      Status
-                    </Typography>
-                    <Chip
-                      label={ORDER_STATUSES.find(s => s.value === order.orderStatus)?.label || order.orderStatus}
-                      size="small"
-                      color={getStatusColor(order.orderStatus) as any}
-                      sx={{ fontWeight: "bold", borderRadius: "6px" }}
-                    />
-                  </Stack>
-
-                  <Box sx={{ p: 2, bgcolor: "background.default", borderRadius: "12px" }}>
-                    <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 1 }}>
-                      Workflow Actions
-                    </Typography>
-                    <Stack spacing={2}>
-                      <FormControl fullWidth size="small">
-                        <InputLabel>Update Status</InputLabel>
-                        <Select
-                          value={order.orderStatus}
-                          label="Update Status"
-                          onChange={(e) => handleUpdateStatus(e.target.value)}
-                          disabled={updating}
-                        >
-                          {ORDER_STATUSES.map((status) => (
-                            <MenuItem key={status.value} value={status.value}>
-                              {status.label}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-
-                      <FormControlLabel
-                        control={
-                          <Switch
-                            checked={order.isPaid}
-                            onChange={handleTogglePaid}
-                            disabled={updating}
-                            color="success"
-                          />
-                        }
-                        label={
-                          <Typography variant="body2" fontWeight="medium">
-                            Payment Received (Is Paid)
-                          </Typography>
-                        }
-                      />
-
-                      {order.paymentProof && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          startIcon={<ImageIcon />}
-                          onClick={() => setOpenProofModal(true)}
-                          sx={{ textTransform: "none", borderRadius: "8px" }}
-                        >
-                          View Payment Proof
-                        </Button>
-                      )}
-                    </Stack>
-                  </Box>
-                  {order.distributor_id && (
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="warning.main" fontWeight="bold">
-                        Distributor (MLM)
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold" color="warning.main">
-                        #{order.distributor_id}
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <CalendarIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary" fontWeight="600">
+                        Date
                       </Typography>
                     </Stack>
-                  )}
-                  {order.stockist && (
-                    <Stack direction="row" justifyContent="space-between">
-                      <Typography variant="body2" color="primary.main" fontWeight="bold">
-                        Stockist (Store)
-                      </Typography>
-                      <Typography variant="body2" fontWeight="bold" color="primary.main">
-                        {order.stockist}
+                    <Typography variant="body2" fontWeight="800">
+                      {new Date(order.createdAt).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    </Typography>
+                  </Stack>
+
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Stack direction="row" spacing={1.5} alignItems="center">
+                      <InventoryIcon sx={{ fontSize: 18, color: 'text.secondary' }} />
+                      <Typography variant="body2" color="text.secondary" fontWeight="600">
+                        Articles
                       </Typography>
                     </Stack>
-                  )}
+                    <Typography variant="body2" fontWeight="800">
+                      {order.items?.length || 0} article(s)
+                    </Typography>
+                  </Stack>
+
                   <Divider />
-                  <Stack direction="row" justifyContent="space-between">
-                    <Typography variant="subtitle1" fontWeight="bold">
+
+                  <Stack direction="row" justifyContent="space-between" alignItems="center">
+                    <Typography variant="subtitle1" fontWeight="800">
                       Total
                     </Typography>
                     <Typography
-                      variant="subtitle1"
-                      fontWeight="bold"
-                      color="primary.main"
+                      variant="h5"
+                      fontWeight="900"
+                      sx={{
+                        background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                        WebkitBackgroundClip: "text",
+                        WebkitTextFillColor: "transparent",
+                      }}
                     >
-                      {order.total}
+                      {formatPrice(order.total || 0)}
                     </Typography>
                   </Stack>
                 </Stack>
               </CardContent>
             </Card>
 
+            {/* Customer Card */}
             <Card
               elevation={0}
               sx={{
-                borderRadius: "20px",
+                borderRadius: "24px",
                 border: "1px solid",
                 borderColor: "divider",
               }}
             >
               <CardContent sx={{ p: 3 }}>
-                <Stack
-                  direction="row"
-                  spacing={1.5}
-                  alignItems="center"
-                  sx={{ mb: 2 }}
-                >
-                  <CustomerIcon color="primary" sx={{ fontSize: 20 }} />
-                  <Typography variant="subtitle2" fontWeight="bold">
-                    Customer Info
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+                  <Box sx={{ p: 1, bgcolor: "primary.lighter", borderRadius: "12px", display: "flex" }}>
+                    <CustomerIcon sx={{ color: "primary.main", fontSize: 20 }} />
+                  </Box>
+                  <Typography variant="subtitle1" fontWeight="900">
+                    Client
                   </Typography>
                 </Stack>
-                <Typography variant="body1" fontWeight="medium">
-                  {order.shipping_name || order.user?.name || "Anonymous"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Email: {order.shipping_email || order.user?.email || "N/A"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  Phone: {order.shipping_phone || "N/A"}
-                </Typography>
-                <Divider sx={{ my: 1.5 }} />
-                <Typography variant="subtitle2" fontWeight="bold" sx={{ mb: 0.5 }}>
-                  Shipping Address
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {order.shipping_street || "N/A"}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  {order.shipping_city || "N/A"}, {order.shipping_zip || ""}
-                </Typography>
-                <Typography variant="body2" color="text.secondary" fontWeight="bold">
-                  {order.shipping_country || "N/A"}
-                </Typography>
-                <Button
-                  startIcon={<ShippingIcon />}
-                  fullWidth
-                  variant="outlined"
-                  sx={{ mt: 2, borderRadius: "8px", textTransform: "none" }}
-                  onClick={() => router.push("/deliveries")}
-                >
-                  View Delivery
-                </Button>
+
+                <Stack direction="row" spacing={2} alignItems="center" sx={{ mb: 3 }}>
+                  <Avatar
+                    sx={{
+                      width: 56,
+                      height: 56,
+                      borderRadius: "16px",
+                      fontWeight: "900",
+                      fontSize: "1.2rem",
+                      bgcolor: "secondary.lighter",
+                      color: "secondary.main",
+                    }}
+                  >
+                    {order.customer?.charAt(0)?.toUpperCase() || 'C'}
+                  </Avatar>
+                  <Box>
+                    <Typography variant="subtitle1" fontWeight="900">
+                      {order.customer || 'Client'}
+                    </Typography>
+                    <Chip
+                      label="Client"
+                      size="small"
+                      sx={{ fontSize: '0.65rem', height: 20, borderRadius: '6px' }}
+                    />
+                  </Box>
+                </Stack>
+
+                <Stack spacing={2}>
+                  {order.customerPhone && (
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Box sx={{ p: 1, bgcolor: "grey.100", borderRadius: "10px" }}>
+                        <PhoneIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      </Box>
+                      <Typography variant="body2" fontWeight="600">
+                        {order.customerPhone}
+                      </Typography>
+                    </Stack>
+                  )}
+                  {order.customerEmail && (
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Box sx={{ p: 1, bgcolor: "grey.100", borderRadius: "10px" }}>
+                        <EmailIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                      </Box>
+                      <Typography variant="body2" fontWeight="600" sx={{ wordBreak: 'break-all' }}>
+                        {order.customerEmail}
+                      </Typography>
+                    </Stack>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+
+            {/* Shipping Card */}
+            <Card
+              elevation={0}
+              sx={{
+                borderRadius: "24px",
+                border: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <CardContent sx={{ p: 3 }}>
+                <Stack direction="row" spacing={1.5} alignItems="center" sx={{ mb: 3 }}>
+                  <Box sx={{ p: 1, bgcolor: "info.lighter", borderRadius: "12px", display: "flex" }}>
+                    <ShippingIcon sx={{ color: "info.main", fontSize: 20 }} />
+                  </Box>
+                  <Typography variant="subtitle1" fontWeight="900">
+                    Livraison
+                  </Typography>
+                </Stack>
+
+                <Stack spacing={2}>
+                  <Stack direction="row" spacing={2} alignItems="flex-start">
+                    <Box sx={{ p: 1, bgcolor: "grey.100", borderRadius: "10px", mt: 0.5 }}>
+                      <LocationIcon sx={{ fontSize: 16, color: 'text.secondary' }} />
+                    </Box>
+                    <Box>
+                      <Typography variant="body2" fontWeight="800">
+                        {order.shippingCity || 'Ville non spécifiée'}
+                      </Typography>
+                      <Typography variant="body2" color="text.secondary">
+                        {order.shippingCountry || 'Pays non spécifié'}
+                      </Typography>
+                      {order.shippingStreet && (
+                        <Typography variant="caption" color="text.secondary">
+                          {order.shippingStreet}
+                        </Typography>
+                      )}
+                    </Box>
+                  </Stack>
+                </Stack>
               </CardContent>
             </Card>
           </Stack>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 8 }}>
+        {/* Right Column - Order Items */}
+        <Grid size={{ xs: 12, lg: 8 }}>
           <Card
             elevation={0}
             sx={{
-              borderRadius: "20px",
+              borderRadius: "24px",
               border: "1px solid",
               borderColor: "divider",
+              overflow: "hidden",
+              height: '100%',
             }}
           >
-            <CardContent sx={{ p: 0 }}>
-              <Box sx={{ p: 4 }}>
-                <Typography variant="h6" fontWeight="bold">
-                  Order Items
-                </Typography>
-              </Box>
-              <Divider />
-              <TableContainer>
-                <Table>
-                  <TableHead sx={{ bgcolor: "background.default" }}>
-                    <TableRow>
-                      <TableCell sx={{ fontWeight: "bold" }}>
-                        Item Name
-                      </TableCell>
-                      <TableCell align="center" sx={{ fontWeight: "bold" }}>
-                        Quantity
-                      </TableCell>
-                      <TableCell align="right" sx={{ fontWeight: "bold" }}>
-                        Price
-                      </TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {(order.items || []).map((item: any, idx: number) => (
-                      <TableRow key={idx}>
-                        <TableCell sx={{ fontWeight: "medium" }}>
-                          {item.product?.title || "Unknown Product"}
-                        </TableCell>
-                        <TableCell align="center">{item.quantity}</TableCell>
-                        <TableCell align="right" sx={{ fontWeight: "bold" }}>
-                          ${item.price?.toLocaleString()}
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {!order.items?.length && (
-                      <TableRow>
-                        <TableCell colSpan={3} align="center">
-                          No items found for this order.
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </TableContainer>
-            </CardContent>
+            {/* Items Header */}
+            <Box
+              sx={{
+                p: 3,
+                bgcolor: (theme) => theme.palette.mode === "light" ? "grey.50" : "grey.900",
+                borderBottom: "1px solid",
+                borderColor: "divider",
+              }}
+            >
+              <Stack direction="row" justifyContent="space-between" alignItems="center">
+                <Stack direction="row" spacing={1.5} alignItems="center">
+                  <Box sx={{ p: 1, bgcolor: "warning.lighter", borderRadius: "12px", display: "flex" }}>
+                    <InventoryIcon sx={{ color: "warning.main", fontSize: 20 }} />
+                  </Box>
+                  <Typography variant="subtitle1" fontWeight="900">
+                    Articles commandés
+                  </Typography>
+                </Stack>
+                <Chip
+                  label={`${order.items?.length || 0} article(s)`}
+                  size="small"
+                  color="primary"
+                  sx={{ fontWeight: "800", borderRadius: "8px" }}
+                />
+              </Stack>
+            </Box>
+
+            {/* Items List */}
+            <Box sx={{ p: 3 }}>
+              <Stack spacing={2}>
+                {order.items?.map((item: any, idx: number) => (
+                  <Paper
+                    key={idx}
+                    elevation={0}
+                    sx={{
+                      p: 2.5,
+                      borderRadius: "16px",
+                      bgcolor: (theme) => theme.palette.mode === "light" ? "grey.50" : "grey.900",
+                      border: "1px solid",
+                      borderColor: "divider",
+                      transition: "all 0.2s",
+                      "&:hover": {
+                        bgcolor: (theme) => theme.palette.mode === "light" ? "grey.100" : "grey.800",
+                        transform: "translateY(-2px)",
+                        boxShadow: "0 4px 20px rgba(0,0,0,0.08)",
+                      },
+                    }}
+                  >
+                    <Stack direction="row" spacing={2.5} alignItems="center">
+                      <Avatar
+                        variant="rounded"
+                        sx={{
+                          width: 64,
+                          height: 64,
+                          borderRadius: "14px",
+                          bgcolor: "primary.lighter",
+                          color: "primary.main",
+                          fontWeight: "900",
+                          fontSize: "0.9rem",
+                        }}
+                      >
+                        {item.productName?.charAt(0)?.toUpperCase() || 'P'}
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="subtitle2" fontWeight="800" noWrap>
+                          {item.productName || 'Produit'}
+                        </Typography>
+                        <Stack direction="row" spacing={1} alignItems="center" sx={{ mt: 0.5 }}>
+                          <Chip
+                            label={`Qté: ${item.quantity}`}
+                            size="small"
+                            sx={{
+                              fontWeight: "700",
+                              borderRadius: "8px",
+                              bgcolor: "primary.lighter",
+                              color: "primary.main",
+                              fontSize: "0.7rem",
+                            }}
+                          />
+                        </Stack>
+                      </Box>
+                      <Box sx={{ textAlign: 'right' }}>
+                        <Typography variant="subtitle1" fontWeight="900" color="primary.main">
+                          {formatPrice(item.price || 0)}
+                        </Typography>
+                        {item.quantity > 1 && (
+                          <Typography variant="caption" color="text.secondary">
+                            {formatPrice((item.price || 0) * item.quantity)} total
+                          </Typography>
+                        )}
+                      </Box>
+                    </Stack>
+                  </Paper>
+                ))}
+              </Stack>
+
+              {/* Order Total */}
+              <Paper
+                elevation={0}
+                sx={{
+                  mt: 3,
+                  p: 3,
+                  borderRadius: "16px",
+                  background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main}15 0%, ${theme.palette.secondary.main}15 100%)`,
+                  border: "1px dashed",
+                  borderColor: "primary.main",
+                }}
+              >
+                <Stack direction="row" justifyContent="space-between" alignItems="center">
+                  <Box>
+                    <Typography variant="subtitle2" color="text.secondary" fontWeight="600">
+                      Total de la commande
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      Livraison incluse
+                    </Typography>
+                  </Box>
+                  <Typography
+                    variant="h4"
+                    fontWeight="900"
+                    sx={{
+                      background: (theme) => `linear-gradient(135deg, ${theme.palette.primary.main} 0%, ${theme.palette.secondary.main} 100%)`,
+                      WebkitBackgroundClip: "text",
+                      WebkitTextFillColor: "transparent",
+                    }}
+                  >
+                    {formatPrice(order.total || 0)}
+                  </Typography>
+                </Stack>
+              </Paper>
+            </Box>
           </Card>
         </Grid>
       </Grid>
-      {/* Payment Proof Modal */}
-      <Dialog open={openProofModal} onClose={() => setOpenProofModal(false)} maxWidth="md">
-        <DialogTitle>Payment Proof</DialogTitle>
-        <DialogContent>
-          <img
-            src={`${API_URL}/storage/${order.paymentProof}`}
-            alt="Payment Proof"
-            style={{ width: '100%', height: 'auto', borderRadius: '8px' }}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenProofModal(false)}>Close</Button>
-          <Button
-            variant="contained"
-            color="success"
-            onClick={() => {
-              handleUpdateStatus('validated');
-              setOpenProofModal(false);
-            }}
-          >
-            Validate Payment
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delete Confirmation Modal */}
-      <Dialog open={openDeleteModal} onClose={() => setOpenDeleteModal(false)}>
-        <DialogTitle>Delete Order?</DialogTitle>
-        <DialogContent>
-          <Typography>
-            Are you sure you want to delete order #{order.id}? This action cannot be undone.
-          </Typography>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteModal(false)}>Cancel</Button>
-          <Button onClick={handleDeleteOrder} color="error" variant="contained">
-            Delete Permanently
-          </Button>
-        </DialogActions>
-      </Dialog>
     </Box>
   );
 }
