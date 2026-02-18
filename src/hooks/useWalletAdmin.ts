@@ -77,3 +77,32 @@ export async function generateTreasury(amount: number, adminUserId: number) {
     const res = await axiosInstance.post("wallet/treasury/generate", { amount, admin_user_id: adminUserId });
     return res.data;
 }
+
+export function useEligibleSellers(page = 1, perPage = 30, search = "") {
+    const [data, setData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+
+    const fetch = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await axiosInstance.get("wallet/sellers/eligible", { params: { page, per_page: perPage, ...(search ? { search } : {}) } });
+            setData(res.data.users);
+        } catch {
+            setData(null);
+        } finally {
+            setLoading(false);
+        }
+    }, [page, perPage, search]);
+
+    useEffect(() => { fetch(); }, [fetch]);
+    return { data, loading, refresh: fetch };
+}
+
+export async function toggleWalletSeller(userId: number, isWalletSeller: boolean, whatsapp?: string) {
+    const res = await axiosInstance.post("wallet/sellers/update", {
+        user_id: userId,
+        is_wallet_seller: isWalletSeller,
+        ...(whatsapp !== undefined ? { wallet_seller_whatsapp: whatsapp } : {}),
+    });
+    return res.data;
+}

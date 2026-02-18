@@ -21,5 +21,6 @@ export enum LinksEnum {
   wallets = "/wallets",
   walletsRecharge = "/wallets/recharge",
   walletsTransactions = "/wallets/transactions",
+  walletsSellers = "/wallets/sellers",
   exchangeRates = "/wallets/exchange-rates",
 }

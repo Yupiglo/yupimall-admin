@@ -21,6 +21,9 @@ export default function WalletsOverview() {
                     <Button variant="contained" onClick={() => router.push("/wallets/recharge")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
                         Recharger un Wallet
                     </Button>
+                    <Button variant="contained" color="secondary" onClick={() => router.push("/wallets/sellers")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
+                        Gérer Vendeurs
+                    </Button>
                     <Button variant="outlined" onClick={() => router.push("/wallets/exchange-rates")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
                         Taux de change
                     </Button>
