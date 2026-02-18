@@ -6,37 +6,31 @@ import {
     CircularProgress, Autocomplete, Chip,
 } from "@mui/material";
 import { ArrowBack as BackIcon } from "@mui/icons-material";
-import { useAllWallets, rechargeWallet } from "@/hooks/useWalletAdmin";
+import { useActiveSellers, rechargeWalletByUser } from "@/hooks/useWalletAdmin";
 import { useRouter } from "next/navigation";
-
-const SELLER_ROLES = ["stockist", "member", "distributor"];
 
 export default function RechargeWalletPage() {
     const router = useRouter();
-    const { wallets, loading: walletsLoading } = useAllWallets(1, 200);
-    const [selectedWallet, setSelectedWallet] = useState<any>(null);
+    const { sellers, loading: sellersLoading } = useActiveSellers();
+    const [selectedSeller, setSelectedSeller] = useState<any>(null);
     const [amount, setAmount] = useState("");
     const [submitting, setSubmitting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [success, setSuccess] = useState<string | null>(null);
 
-    const sellerWallets = wallets?.data?.filter((w: any) =>
-        SELLER_ROLES.includes(w.user?.role?.toLowerCase())
-    ) || [];
-
     const handleRecharge = async () => {
         setError(null);
         setSuccess(null);
-        if (!selectedWallet || !amount || parseFloat(amount) <= 0) {
+        if (!selectedSeller || !amount || parseFloat(amount) <= 0) {
             setError("Veuillez sélectionner un vendeur et entrer un montant valide.");
             return;
         }
         setSubmitting(true);
         try {
-            const res = await rechargeWallet(selectedWallet.id, parseFloat(amount));
-            setSuccess(`Wallet de ${selectedWallet.user?.name} rechargé ! Nouveau solde: $${parseFloat(res.wallet.balance).toFixed(2)}`);
+            const res = await rechargeWalletByUser(selectedSeller.id, parseFloat(amount));
+            setSuccess(`Wallet de ${selectedSeller.name} rechargé ! Nouveau solde: $${parseFloat(res.wallet.balance).toFixed(2)}`);
             setAmount("");
-            setSelectedWallet(null);
+            setSelectedSeller(null);
         } catch (err: any) {
             setError(err.response?.data?.message || "Erreur lors de la recharge.");
         } finally {
@@ -55,27 +49,38 @@ export default function RechargeWalletPage() {
             <Card sx={{ borderRadius: 4 }}>
                 <CardContent sx={{ p: 4 }}>
                     <Stack spacing={3}>
-                        {walletsLoading ? (
+                        {sellersLoading ? (
                             <Box sx={{ textAlign: "center", py: 3 }}><CircularProgress size={24} /></Box>
+                        ) : sellers.length === 0 ? (
+                            <Alert severity="info" sx={{ borderRadius: 2 }}>
+                                Aucun vendeur actif. Activez des vendeurs dans la page &quot;Gérer Vendeurs&quot;.
+                            </Alert>
                         ) : (
                             <Autocomplete
-                                options={sellerWallets}
-                                value={selectedWallet}
-                                onChange={(_, val) => setSelectedWallet(val)}
-                                getOptionLabel={(w: any) =>
-                                    `${w.user?.name || w.user?.username || "—"} — ${w.user?.role} — $${parseFloat(w.balance).toFixed(2)}`
+                                options={sellers}
+                                value={selectedSeller}
+                                onChange={(_, val) => setSelectedSeller(val)}
+                                getOptionLabel={(s: any) =>
+                                    `${s.name || s.username || "—"} — ${s.email}`
                                 }
-                                renderOption={(props, w: any) => (
-                                    <li {...props} key={w.id}>
+                                renderOption={(props, s: any) => (
+                                    <li {...props} key={s.id}>
                                         <Stack direction="row" spacing={1.5} alignItems="center" sx={{ width: "100%" }}>
                                             <Box sx={{ flex: 1 }}>
-                                                <Typography fontWeight={700} variant="body2">{w.user?.name || w.user?.username}</Typography>
-                                                <Typography variant="caption" color="text.secondary">{w.user?.email}</Typography>
+                                                <Typography fontWeight={700} variant="body2">{s.name || s.username}</Typography>
+                                                <Typography variant="caption" color="text.secondary">{s.email}</Typography>
                                             </Box>
-                                            <Chip label={w.user?.role} size="small" sx={{ fontWeight: 700, fontSize: "0.65rem", textTransform: "uppercase" }} />
-                                            <Typography fontWeight={800} variant="body2" color="success.main">
-                                                ${parseFloat(w.balance).toFixed(2)}
-                                            </Typography>
+                                            <Chip
+                                                label={s.country?.name || "—"}
+                                                size="small"
+                                                variant="outlined"
+                                                sx={{ fontSize: "0.65rem" }}
+                                            />
+                                            {s.wallet_seller_whatsapp && (
+                                                <Typography variant="caption" color="text.secondary">
+                                                    {s.wallet_seller_whatsapp}
+                                                </Typography>
+                                            )}
                                         </Stack>
                                     </li>
                                 )}
@@ -87,21 +92,25 @@ export default function RechargeWalletPage() {
                             />
                         )}
 
-                        {selectedWallet && (
+                        {selectedSeller && (
                             <Card variant="outlined" sx={{ borderRadius: 3, bgcolor: "action.hover" }}>
                                 <CardContent sx={{ py: 2 }}>
                                     <Stack direction="row" justifyContent="space-between" alignItems="center">
                                         <Box>
-                                            <Typography fontWeight={700}>{selectedWallet.user?.name}</Typography>
+                                            <Typography fontWeight={700}>{selectedSeller.name}</Typography>
                                             <Typography variant="caption" color="text.secondary">
-                                                {selectedWallet.user?.email} — {selectedWallet.user?.role}
+                                                {selectedSeller.email}
                                             </Typography>
                                         </Box>
                                         <Box sx={{ textAlign: "right" }}>
-                                            <Typography variant="body2" color="text.secondary">Solde actuel</Typography>
-                                            <Typography fontWeight={900} color="success.main">
-                                                ${parseFloat(selectedWallet.balance).toFixed(2)}
+                                            <Typography variant="caption" color="text.secondary">
+                                                {selectedSeller.city || "—"}, {selectedSeller.country?.name || "—"}
                                             </Typography>
+                                            {selectedSeller.wallet_seller_whatsapp && (
+                                                <Typography variant="body2" fontWeight={600}>
+                                                    WhatsApp: {selectedSeller.wallet_seller_whatsapp}
+                                                </Typography>
+                                            )}
                                         </Box>
                                     </Stack>
                                 </CardContent>
@@ -125,7 +134,7 @@ export default function RechargeWalletPage() {
                             variant="contained"
                             size="large"
                             onClick={handleRecharge}
-                            disabled={submitting || !selectedWallet}
+                            disabled={submitting || !selectedSeller}
                             sx={{ borderRadius: 3, fontWeight: 800, py: 1.5, textTransform: "none" }}
                         >
                             {submitting ? <CircularProgress size={24} color="inherit" /> : "Recharger"}

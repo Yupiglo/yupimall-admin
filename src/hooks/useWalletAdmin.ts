@@ -68,6 +68,31 @@ export async function rechargeWallet(walletId: number, amount: number) {
     return res.data;
 }
 
+export async function rechargeWalletByUser(userId: number, amount: number) {
+    const res = await axiosInstance.post("wallet/recharge", { user_id: userId, amount });
+    return res.data;
+}
+
+export function useActiveSellers() {
+    const [sellers, setSellers] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    const fetch = useCallback(async () => {
+        try {
+            setLoading(true);
+            const res = await axiosInstance.get("wallet/sellers");
+            setSellers(res.data.sellers || []);
+        } catch {
+            setSellers([]);
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => { fetch(); }, [fetch]);
+    return { sellers, loading, refresh: fetch };
+}
+
 export async function createExchangeRate(fromCurrency: string, rate: number) {
     const res = await axiosInstance.post("exchange-rates", { from_currency: fromCurrency, rate });
     return res.data;
