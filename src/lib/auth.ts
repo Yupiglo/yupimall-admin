@@ -116,7 +116,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
             return {
               id: response.data.user.id.toString(),
-              name: response.data.user.username,
+              name: response.data.user.name || response.data.user.username,
               email: response.data.user.email,
               image: response.data.user.image_url || response.data.user.avatar_url,
               access: response.data.user.token,
@@ -136,18 +136,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user, account, trigger, session: updateData }) {
       if (account && user) {
         return {
+          ...token,
           accessToken: user.access,
           refreshToken: user.refresh,
-          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000, // 30 Days
+          expiresAt: Date.now() + 30 * 24 * 60 * 60 * 1000,
+          name: user.name,
+          email: user.email,
+          picture: user.image,
           role: user.role,
           country: user.country,
           supervisorId: user.supervisorId,
           image: user.image,
           user,
         };
+      }
+
+      if (trigger === "update" && updateData) {
+        if (updateData.user?.name) token.name = updateData.user.name;
+        if (updateData.user?.image) {
+          token.image = updateData.user.image;
+          token.picture = updateData.user.image;
+        }
       }
 
       if (Date.now() < (token.expiresAt as number)) {
@@ -161,10 +173,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.refreshToken = token.refreshToken as string;
       session.error = token.error as string;
       if (session.user) {
+        session.user.name = token.name as string;
         session.user.role = token.role as string;
         session.user.country = token.country as string;
         session.user.supervisorId = token.supervisorId as string;
-        session.user.image = token.image as string;
+        session.user.image = (token.image || token.picture) as string;
       }
       return session;
     },
