@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -13,6 +13,8 @@ import {
   Chip,
   Divider,
   Grid,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -25,20 +27,7 @@ import {
 } from "@mui/icons-material";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
-
-const exits = [
-  {
-    id: "#EXT-001",
-    product: "Classic Leather Jacket",
-    sku: "JKT-001",
-    quantity: 12,
-    destination: "John Doe (Downtown)",
-    date: "Oct 26, 2025, 11:45 AM",
-    status: "Delivered",
-    notes: "Direct delivery to customer.",
-  },
-];
+import axiosInstance from "@/lib/axios";
 
 export default function ExitDetailPage({
   params,
@@ -51,13 +40,76 @@ export default function ExitDetailPage({
   const { id } = resolvedParams;
   const decodedId = decodeURIComponent(id);
 
+  const [exit, setExit] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (searchParams.get("print") === "true") {
       window.print();
     }
   }, [searchParams]);
 
-  const exit = exits.find((e) => e.id === decodedId) || exits[0];
+  useEffect(() => {
+    const fetchExit = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get(`stock/exits/${decodedId}`);
+        const exitData = response.data.data || response.data;
+        if (exitData) {
+          setExit({
+            id: exitData.reference || `#EXT-${exitData.id}`,
+            product: exitData.product?.title || exitData.product_name || 'Unknown Product',
+            sku: exitData.product?.sku || exitData.sku || 'N/A',
+            quantity: exitData.quantity || 0,
+            destination: exitData.user?.name || exitData.destination || 'Not specified',
+            date: exitData.created_at 
+              ? new Date(exitData.created_at).toLocaleString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric',
+                  hour: '2-digit',
+                  minute: '2-digit'
+                })
+              : 'Date not available',
+            status: exitData.reason === 'sale' ? 'Delivered' : exitData.reason || 'Completed',
+            notes: exitData.notes || exitData.reason || 'No notes available.',
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching exit:", err);
+        setError("Failed to load exit details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchExit();
+    }
+  }, [decodedId]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !exit) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || "Exit not found"}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/exits")}>
+          Back to Exits
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>

@@ -15,6 +15,8 @@ import {
   Stack,
   Tooltip,
   Avatar,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   Visibility as ViewIcon,
@@ -22,60 +24,38 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
-
-const couriers = [
-  {
-    id: "#COU-001",
-    name: "John Doe",
-    email: "john.doe@example.com",
-    phone: "+1 234 567 890",
-    vehicle: "Motorcycle",
-    deliveries: 124,
-    status: "Active",
-  },
-  {
-    id: "#COU-002",
-    name: "Jane Smith",
-    email: "jane.smith@example.com",
-    phone: "+1 234 567 891",
-    vehicle: "Bicycle",
-    deliveries: 85,
-    status: "Active",
-  },
-  {
-    id: "#COU-003",
-    name: "Mike Tyson",
-    email: "mike.t@example.com",
-    phone: "+1 234 567 892",
-    vehicle: "Car",
-    deliveries: 210,
-    status: "On Delivery",
-  },
-  {
-    id: "#COU-004",
-    name: "Sarah Connor",
-    email: "sarah.c@example.com",
-    phone: "+1 234 567 893",
-    vehicle: "Van",
-    deliveries: 45,
-    status: "Offline",
-  },
-];
+import { useDeliveryPersonnel } from "@/hooks/useDeliveries";
 
 export default function CouriersTable() {
   const router = useRouter();
+  const { personnel, loading, error } = useDeliveryPersonnel();
+
   const getStatusColor = (status: string) => {
-    switch (status) {
-      case "Active":
-        return "success";
-      case "On Delivery":
-        return "info";
-      case "Offline":
-        return "default";
-      default:
-        return "default";
-    }
+    const s = status?.toLowerCase();
+    if (s === "active") return "success";
+    if (s === "on delivery" || s === "on_delivery") return "info";
+    return "default";
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: "flex", justifyContent: "center", py: 6 }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error) {
+    return <Alert severity="error" sx={{ borderRadius: 2 }}>{error}</Alert>;
+  }
+
+  if (personnel.length === 0) {
+    return (
+      <Box sx={{ textAlign: "center", py: 6 }}>
+        <Typography color="text.secondary">Aucun livreur trouvé</Typography>
+      </Box>
+    );
+  }
 
   return (
     <TableContainer
@@ -86,60 +66,41 @@ export default function CouriersTable() {
       <Table sx={{ minWidth: 650 }}>
         <TableHead sx={{ bgcolor: "background.default" }}>
           <TableRow>
-            <TableCell sx={{ fontWeight: "bold" }}>Courier</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Contact Info</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Vehicle</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Total Deliveries</TableCell>
-            <TableCell sx={{ fontWeight: "bold" }}>Status</TableCell>
-            <TableCell align="right" sx={{ fontWeight: "bold" }}>
-              Actions
-            </TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Livreur</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Contact</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Véhicule</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Livraisons</TableCell>
+            <TableCell sx={{ fontWeight: "bold" }}>Statut</TableCell>
+            <TableCell align="right" sx={{ fontWeight: "bold" }}>Actions</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {couriers.map((courier) => (
-            <TableRow
-              key={courier.id}
-              hover
-              sx={{ "&:last-child td, &:last-child th": { border: 0 } }}
-            >
+          {personnel.map((courier) => (
+            <TableRow key={courier.id} hover sx={{ "&:last-child td": { border: 0 } }}>
               <TableCell>
                 <Stack direction="row" spacing={2} alignItems="center">
                   <Avatar
                     sx={{
-                      width: 40,
-                      height: 40,
-                      bgcolor: "primary.light",
-                      color: "primary.main",
-                      fontWeight: "bold",
+                      width: 40, height: 40, bgcolor: "primary.light",
+                      color: "primary.main", fontWeight: "bold",
                     }}
                   >
-                    {courier.name.charAt(0)}
+                    {courier.name?.charAt(0).toUpperCase()}
                   </Avatar>
                   <Box>
-                    <Typography variant="subtitle2" fontWeight="bold">
-                      {courier.name}
-                    </Typography>
-                    <Typography variant="caption" color="text.secondary">
-                      {courier.id}
-                    </Typography>
+                    <Typography variant="subtitle2" fontWeight="bold">{courier.name}</Typography>
+                    <Typography variant="caption" color="text.secondary">#{courier.id}</Typography>
                   </Box>
                 </Stack>
               </TableCell>
               <TableCell>
                 <Box>
                   <Typography variant="body2">{courier.email}</Typography>
-                  <Typography variant="caption" color="text.secondary">
-                    {courier.phone}
-                  </Typography>
+                  <Typography variant="caption" color="text.secondary">{courier.phone}</Typography>
                 </Box>
               </TableCell>
-              <TableCell sx={{ fontWeight: "medium" }}>
-                {courier.vehicle}
-              </TableCell>
-              <TableCell sx={{ fontWeight: "medium" }}>
-                {courier.deliveries}
-              </TableCell>
+              <TableCell sx={{ fontWeight: "medium" }}>{courier.vehicle || "—"}</TableCell>
+              <TableCell sx={{ fontWeight: "medium" }}>{courier.totalDeliveries ?? 0}</TableCell>
               <TableCell>
                 <Chip
                   label={courier.status}
@@ -150,32 +111,17 @@ export default function CouriersTable() {
               </TableCell>
               <TableCell align="right">
                 <Stack direction="row" spacing={1} justifyContent="flex-end">
-                  <Tooltip title="View Profile">
-                    <IconButton
-                      size="small"
-                      onClick={() =>
-                        router.push(
-                          `/couriers/${encodeURIComponent(courier.id)}`
-                        )
-                      }
-                    >
+                  <Tooltip title="Voir le profil">
+                    <IconButton size="small" onClick={() => router.push(`/couriers/${courier.id}`)}>
                       <ViewIcon fontSize="small" color="action" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Edit Info">
-                    <IconButton
-                      size="small"
-                      color="primary"
-                      onClick={() =>
-                        router.push(
-                          `/couriers/${encodeURIComponent(courier.id)}/edit`
-                        )
-                      }
-                    >
+                  <Tooltip title="Modifier">
+                    <IconButton size="small" color="primary" onClick={() => router.push(`/couriers/${courier.id}/edit`)}>
                       <EditIcon fontSize="small" />
                     </IconButton>
                   </Tooltip>
-                  <Tooltip title="Delete">
+                  <Tooltip title="Supprimer">
                     <IconButton size="small" color="error">
                       <DeleteIcon fontSize="small" />
                     </IconButton>

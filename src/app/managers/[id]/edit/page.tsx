@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -21,6 +21,8 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -28,6 +30,7 @@ import {
   Security as SecurityIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
+import axiosInstance from "@/lib/axios";
 
 interface PermissionRow {
   module: string;
@@ -61,19 +64,55 @@ export default function ManagerEditPage({
   const router = useRouter();
   const resolvedParams = use(params);
   const { id } = resolvedParams;
+  const decodedId = decodeURIComponent(id);
 
   const [formData, setFormData] = useState({
-    nom: "Stark",
-    prenoms: "Antony",
-    sexe: "Masculin",
-    email: "tony@yupiflow.com",
-    phone: "+1 555-0101",
-    role: "Admin",
-    status: "Active",
+    nom: "",
+    prenoms: "",
+    sexe: "",
+    email: "",
+    phone: "",
+    role: "",
+    status: "",
   });
 
   const [permissions, setPermissions] =
     useState<PermissionRow[]>(initialPermissions);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchManager = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get(`users/${decodedId}`);
+        if (response.data.message === 'success') {
+          const userData = response.data.user;
+          const nameParts = (userData.name || '').split(' ');
+          setFormData({
+            nom: nameParts.length > 1 ? nameParts.slice(-1)[0] : nameParts[0] || "",
+            prenoms: nameParts.length > 1 ? nameParts.slice(0, -1).join(' ') : "",
+            sexe: userData.sexe || "Masculin",
+            email: userData.email || "",
+            phone: userData.phone || "",
+            role: userData.role || "Admin",
+            status: userData.status || "Active",
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching manager:", err);
+        setError("Failed to load manager data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchManager();
+    }
+  }, [decodedId]);
 
   const handleToggle = (
     moduleIndex: number,
@@ -87,10 +126,49 @@ export default function ManagerEditPage({
     setPermissions(newPermissions);
   };
 
-  const handleSave = () => {
-    console.log("Saving manager data:", formData, permissions);
-    router.push(`/managers/${id}`);
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      const fullName = formData.prenoms 
+        ? `${formData.prenoms} ${formData.nom}`.trim()
+        : formData.nom;
+      await axiosInstance.put(`users/${decodedId}`, {
+        name: fullName,
+        email: formData.email,
+        phone: formData.phone,
+        role: formData.role,
+        status: formData.status,
+        sexe: formData.sexe,
+      });
+      router.push(`/managers/${decodedId}`);
+    } catch (err) {
+      console.error("Error saving manager:", err);
+      setError("Failed to save manager changes");
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error && !formData.email) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/managers")}>
+          Back to Managers
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -116,8 +194,9 @@ export default function ManagerEditPage({
         </Box>
         <Button
           variant="contained"
-          startIcon={<SaveIcon />}
+          startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
           onClick={handleSave}
+          disabled={saving}
           sx={{
             borderRadius: "12px",
             textTransform: "none",
@@ -126,8 +205,13 @@ export default function ManagerEditPage({
             boxShadow: "none",
           }}
         >
-          Save Changes
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
       </Stack>
 
       <Grid container spacing={4}>

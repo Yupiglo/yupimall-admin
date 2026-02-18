@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -15,6 +15,8 @@ import {
   Divider,
   Grid,
   Paper,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -24,27 +26,7 @@ import {
   Phone as PhoneIcon,
   AdminPanelSettings as AdminIcon,
 } from "@mui/icons-material";
-
-const managers = [
-  {
-    id: "#MGR-001",
-    name: "Antony Stark",
-    email: "tony@yupiflow.com",
-    role: "Admin",
-    status: "Active",
-    lastLogin: "2h ago",
-    phone: "+1 555-0101",
-  },
-  {
-    id: "#MGR-002",
-    name: "Steve Rogers",
-    email: "steve@yupiflow.com",
-    role: "Manager",
-    status: "Active",
-    lastLogin: "5h ago",
-    phone: "+1 555-0102",
-  },
-];
+import axiosInstance from "@/lib/axios";
 
 const modulePermissions = [
   { module: "Products", access: "View / Create / Edit" },
@@ -64,9 +46,69 @@ export default function ManagerDetailPage({
   const router = useRouter();
   const resolvedParams = use(params);
   const { id } = resolvedParams;
+  const decodedId = decodeURIComponent(id);
 
-  // Mock finding manager by ID
-  const manager = managers.find((m) => m.id === id) || managers[0];
+  const [manager, setManager] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchManager = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get(`users/${decodedId}`);
+        if (response.data.message === 'success') {
+          const userData = response.data.user;
+          setManager({
+            id: `#MGR-${userData.id}`,
+            name: userData.name || 'Unknown',
+            email: userData.email || 'Not provided',
+            role: userData.role || 'Manager',
+            status: userData.status || 'Active',
+            lastLogin: userData.last_login 
+              ? new Date(userData.last_login).toLocaleString('en-US', { 
+                  hour: 'numeric',
+                  minute: '2-digit',
+                  hour12: true
+                }) + ' ago'
+              : 'Never',
+            phone: userData.phone || 'Not provided',
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching manager:", err);
+        setError("Failed to load manager details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchManager();
+    }
+  }, [decodedId]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !manager) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || "Manager not found"}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/managers")}>
+          Back to Managers
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>

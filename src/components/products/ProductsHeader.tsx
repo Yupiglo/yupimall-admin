@@ -39,32 +39,6 @@ interface Subcategory {
   slug?: string;
 }
 
-const bestSellers = [
-  {
-    id: 1,
-    name: "Classic Leather Jacket",
-    sales: 124,
-    growth: "+12.5%",
-    image:
-      "https://images.unsplash.com/photo-1551028150-64b9f398f678?w=100&h=100&fit=crop",
-  },
-  {
-    id: 2,
-    name: "Wireless Headphones",
-    sales: 98,
-    growth: "+8.2%",
-    image:
-      "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=100&h=100&fit=crop",
-  },
-  {
-    id: 3,
-    name: "Smart Watch Series 5",
-    sales: 85,
-    growth: "+15.0%",
-    image:
-      "https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=100&h=100&fit=crop",
-  },
-];
 
 type ProductsHeaderProps = {
   selectedCategory: string;
@@ -84,13 +58,34 @@ export default function ProductsHeader({
   setSelectedStatus,
 }: ProductsHeaderProps) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [bestSellers, setBestSellers] = useState<any[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [subcategories, setSubcategories] = useState<Subcategory[]>([]);
   const [loadingSubs, setLoadingSubs] = useState(false);
 
   useEffect(() => {
     fetchCategories();
+    fetchBestSellers();
   }, []);
+
+  const fetchBestSellers = async () => {
+    try {
+      const response = await axiosInstance.get("products");
+      const allProducts = response.data?.products?.data || response.data?.products || response.data?.data || response.data || [];
+      const sorted = (Array.isArray(allProducts) ? allProducts : [])
+        .sort((a: any, b: any) => (b.sold_count || b.order_count || 0) - (a.sold_count || a.order_count || 0))
+        .slice(0, 3)
+        .map((p: any) => ({
+          id: p.id,
+          name: p.name || p.title,
+          sales: p.sold_count || p.order_count || 0,
+          image: p.image || p.images?.[0] || undefined,
+        }));
+      setBestSellers(sorted);
+    } catch (err) {
+      console.error("Failed to fetch best sellers:", err);
+    }
+  };
 
   useEffect(() => {
     if (selectedCategory !== "all") {
@@ -194,71 +189,47 @@ export default function ProductsHeader({
         </Stack>
       </Stack>
 
-      {/* Best Selling Products Stats */}
-      <Box sx={{ mb: 4 }}>
-        <Typography
-          variant="h6"
-          fontWeight="bold"
-          sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "text.tertio" }}
-        >
-          <StarIcon color="warning" fontSize="small" /> Best Selling Products
-        </Typography>
-        <Grid container spacing={2}>
-          {bestSellers.map((product) => (
-            <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4 }}>
-              <Card
-                variant="outlined"
-                sx={{
-                  borderRadius: "16px",
-                  border: "1px solid",
-                  borderColor: "divider",
-                }}
-              >
-                <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
-                  <Stack direction="row" spacing={2} alignItems="center">
-                    <Avatar
-                      variant="rounded"
-                      src={product.image}
-                      sx={{ width: 48, height: 48, borderRadius: "12px" }}
-                    />
-                    <Box sx={{ flexGrow: 1 }}>
-                      <Typography variant="subtitle2" fontWeight="bold" noWrap>
-                        {product.name}
-                      </Typography>
-                      <Stack
-                        direction="row"
-                        justifyContent="space-between"
-                        alignItems="center"
+      {bestSellers.length > 0 && (
+        <Box sx={{ mb: 4 }}>
+          <Typography
+            variant="h6"
+            fontWeight="bold"
+            sx={{ mb: 2, display: "flex", alignItems: "center", gap: 1, color: "text.tertio" }}
+          >
+            <StarIcon color="warning" fontSize="small" /> Produits les plus vendus
+          </Typography>
+          <Grid container spacing={2}>
+            {bestSellers.map((product: any) => (
+              <Grid key={product.id} size={{ xs: 12, sm: 6, md: 4 }}>
+                <Card
+                  variant="outlined"
+                  sx={{ borderRadius: "16px", border: "1px solid", borderColor: "divider" }}
+                >
+                  <CardContent sx={{ p: 2, "&:last-child": { pb: 2 } }}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                      <Avatar
+                        variant="rounded"
+                        src={product.image}
+                        sx={{ width: 48, height: 48, borderRadius: "12px" }}
                       >
-                        <Typography variant="caption" color="text.secondary">
-                          {product.sales} sales
+                        {product.name?.charAt(0)}
+                      </Avatar>
+                      <Box sx={{ flexGrow: 1 }}>
+                        <Typography variant="subtitle2" fontWeight="bold" noWrap>
+                          {product.name}
                         </Typography>
-                        <Stack
-                          direction="row"
-                          alignItems="center"
-                          spacing={0.5}
-                        >
-                          <TrendingUpIcon
-                            color="success"
-                            sx={{ fontSize: 14 }}
-                          />
-                          <Typography
-                            variant="caption"
-                            fontWeight="bold"
-                            color="success.main"
-                          >
-                            {product.growth}
-                          </Typography>
-                        </Stack>
-                      </Stack>
-                    </Box>
-                  </Stack>
-                </CardContent>
-              </Card>
-            </Grid>
-          ))}
-        </Grid>
-      </Box>
+                        <Typography variant="caption" color="text.secondary">
+                          {product.sales} ventes
+                        </Typography>
+                      </Box>
+                    </Stack>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        </Box>
+      )}
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mt: 4 }}>
         <TextField

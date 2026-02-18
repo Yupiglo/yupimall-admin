@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -14,12 +14,15 @@ import {
   Divider,
   Grid,
   MenuItem,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
   Save as SaveIcon,
   Person as PersonIcon,
 } from "@mui/icons-material";
+import axiosInstance from "@/lib/axios";
 
 export default function CustomerEditPage({
   params,
@@ -32,16 +35,81 @@ export default function CustomerEditPage({
   const decodedId = decodeURIComponent(id);
 
   const [formData, setFormData] = useState({
-    name: "Alice Johnson",
-    email: "alice.j@example.com",
-    phone: "+1 555-0101",
-    status: "Active",
+    name: "",
+    email: "",
+    phone: "",
+    status: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    console.log("Saving customer:", formData);
-    router.push(`/customers/${encodeURIComponent(decodedId)}`);
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get(`users/${decodedId}`);
+        if (response.data.message === 'success') {
+          const userData = response.data.user;
+          setFormData({
+            name: userData.name || "",
+            email: userData.email || "",
+            phone: userData.phone || "",
+            status: userData.status || "Active",
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching customer:", err);
+        setError("Failed to load customer data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchCustomer();
+    }
+  }, [decodedId]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      await axiosInstance.put(`users/${decodedId}`, {
+        name: formData.name,
+        email: formData.email,
+        phone: formData.phone,
+        status: formData.status,
+      });
+      router.push(`/customers/${encodeURIComponent(decodedId)}`);
+    } catch (err) {
+      console.error("Error saving customer:", err);
+      setError("Failed to save customer changes");
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error && !formData.name) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/customers")}>
+          Back to Customers
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -69,8 +137,9 @@ export default function CustomerEditPage({
         </Box>
         <Button
           variant="contained"
-          startIcon={<SaveIcon />}
+          startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
           onClick={handleSave}
+          disabled={saving}
           sx={{
             borderRadius: "12px",
             textTransform: "none",
@@ -79,8 +148,13 @@ export default function CustomerEditPage({
             boxShadow: "none",
           }}
         >
-          Save Changes
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
       </Stack>
 
       <Grid container spacing={4}>

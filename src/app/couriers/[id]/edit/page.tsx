@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -13,6 +13,8 @@ import {
   TextField,
   Grid,
   MenuItem,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -20,6 +22,7 @@ import {
   Person as PersonIcon,
   LocalShipping as VehicleIcon,
 } from "@mui/icons-material";
+import axiosInstance from "@/lib/axios";
 
 export default function CourierEditPage({
   params,
@@ -32,17 +35,84 @@ export default function CourierEditPage({
   const decodedId = decodeURIComponent(id);
 
   const [formData, setFormData] = useState({
-    name: "John Doe",
-    vehicle: "Motorcycle",
-    phone: "+1 555-0201",
-    plate: "ABC-1234",
-    status: "Active",
+    name: "",
+    vehicle: "",
+    phone: "",
+    plate: "",
+    status: "",
   });
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    console.log("Saving courier:", formData);
-    router.push(`/couriers/${encodeURIComponent(decodedId)}`);
+  useEffect(() => {
+    const fetchCourier = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get(`users/${decodedId}`);
+        if (response.data.message === 'success') {
+          const userData = response.data.user;
+          setFormData({
+            name: userData.name || "",
+            vehicle: userData.vehicle_type || "",
+            phone: userData.phone || "",
+            plate: userData.license_plate || "",
+            status: userData.status || "Active",
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching courier:", err);
+        setError("Failed to load courier data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchCourier();
+    }
+  }, [decodedId]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      await axiosInstance.put(`users/${decodedId}`, {
+        name: formData.name,
+        phone: formData.phone,
+        vehicle_type: formData.vehicle,
+        license_plate: formData.plate,
+        status: formData.status,
+      });
+      router.push(`/couriers/${encodeURIComponent(decodedId)}`);
+    } catch (err) {
+      console.error("Error saving courier:", err);
+      setError("Failed to save courier changes");
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error && !formData.name) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/couriers")}>
+          Back to Couriers
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -70,8 +140,9 @@ export default function CourierEditPage({
         </Box>
         <Button
           variant="contained"
-          startIcon={<SaveIcon />}
+          startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
           onClick={handleSave}
+          disabled={saving}
           sx={{
             borderRadius: "12px",
             textTransform: "none",
@@ -80,8 +151,13 @@ export default function CourierEditPage({
             boxShadow: "none",
           }}
         >
-          Save Changes
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
+        {error && (
+          <Alert severity="error" sx={{ mt: 2 }}>
+            {error}
+          </Alert>
+        )}
       </Stack>
 
       <Grid container spacing={4}>

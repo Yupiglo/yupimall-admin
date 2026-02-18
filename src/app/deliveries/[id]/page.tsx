@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -13,6 +13,8 @@ import {
   Chip,
   Divider,
   Grid,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -25,18 +27,7 @@ import {
 } from "@mui/icons-material";
 
 import { useSearchParams } from "next/navigation";
-import { useEffect } from "react";
-
-const deliveries = [
-  {
-    id: "#DEL-4412",
-    orderId: "#ORD-9921",
-    courier: "John Doe",
-    status: "In Progress",
-    timeWindow: "2:00 PM - 4:00 PM",
-    address: "123 Main St, New York, NY",
-  },
-];
+import axiosInstance from "@/lib/axios";
 
 export default function DeliveryDetailPage({
   params,
@@ -49,14 +40,68 @@ export default function DeliveryDetailPage({
   const { id } = resolvedParams;
   const decodedId = decodeURIComponent(id);
 
+  const [delivery, setDelivery] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     if (searchParams.get("print") === "true") {
       window.print();
     }
   }, [searchParams]);
 
-  // Mock finding delivery by ID
-  const delivery = deliveries.find((d) => d.id === decodedId) || deliveries[0];
+  useEffect(() => {
+    const fetchDelivery = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get(`orders/${decodedId}`);
+        if (response.data.message === 'success') {
+          const orderData = response.data.order;
+          setDelivery({
+            id: orderData.trackingCode || `#ORD-${orderData.id}`,
+            orderId: orderData.trackingCode || `#ORD-${orderData.id}`,
+            courier: orderData.delivery_person?.name || 'Not assigned',
+            status: orderData.order_status || orderData.status || 'Pending',
+            timeWindow: orderData.delivery_time_window || 'Not specified',
+            address: orderData.shipping_street 
+              ? `${orderData.shipping_street}, ${orderData.shipping_city || ''}, ${orderData.shipping_country || ''}`.trim()
+              : orderData.shipping_city || 'Address not specified',
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching delivery:", err);
+        setError("Failed to load delivery details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchDelivery();
+    }
+  }, [decodedId]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !delivery) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || "Delivery not found"}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/deliveries")}>
+          Back to Deliveries
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>

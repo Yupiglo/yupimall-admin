@@ -1,6 +1,6 @@
 "use client";
 
-import { use, useState } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -13,12 +13,15 @@ import {
   TextField,
   Grid,
   MenuItem,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
   Save as SaveIcon,
   LocalShipping as DeliveryIcon,
 } from "@mui/icons-material";
+import axiosInstance from "@/lib/axios";
 
 export default function DeliveryEditPage({
   params,
@@ -31,15 +34,97 @@ export default function DeliveryEditPage({
   const decodedId = decodeURIComponent(id);
 
   const [formData, setFormData] = useState({
-    status: "In Progress",
-    courier: "John Doe",
-    notes: "Handle with care. Fragile items.",
+    status: "",
+    courier: "",
+    notes: "",
   });
+  const [couriers, setCouriers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSave = () => {
-    console.log("Saving delivery:", formData);
-    router.push(`/deliveries/${encodeURIComponent(decodedId)}`);
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const [orderRes, couriersRes] = await Promise.all([
+          axiosInstance.get(`orders/${decodedId}`),
+          axiosInstance.get(`delivery/personnel`),
+        ]);
+
+        if (orderRes.data.message === 'success') {
+          const orderData = orderRes.data.order;
+          setFormData({
+            status: orderData.order_status || orderData.status || "",
+            courier: orderData.delivery_person_id?.toString() || "",
+            notes: orderData.delivery_notes || "",
+          });
+        }
+
+        if (couriersRes.data.personnel) {
+          setCouriers(couriersRes.data.personnel || []);
+        }
+      } catch (err) {
+        console.error("Error fetching data:", err);
+        setError("Failed to load delivery data");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchData();
+    }
+  }, [decodedId]);
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      setError(null);
+      
+      // Update order status if changed
+      if (formData.status) {
+        await axiosInstance.put(`orders/${decodedId}/status`, { 
+          status: formData.status 
+        });
+      }
+
+      // Assign courier if changed
+      if (formData.courier) {
+        await axiosInstance.post(`/delivery/assign/${decodedId}`, {
+          delivery_person_id: formData.courier ? parseInt(formData.courier) : null,
+        });
+      }
+
+      router.push(`/deliveries/${encodeURIComponent(decodedId)}`);
+    } catch (err) {
+      console.error("Error saving delivery:", err);
+      setError("Failed to save delivery changes");
+      setSaving(false);
+    }
   };
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error && !formData.status) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/deliveries")}>
+          Back to Deliveries
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
@@ -67,8 +152,9 @@ export default function DeliveryEditPage({
         </Box>
         <Button
           variant="contained"
-          startIcon={<SaveIcon />}
+          startIcon={saving ? <CircularProgress size={20} /> : <SaveIcon />}
           onClick={handleSave}
+          disabled={saving}
           sx={{
             borderRadius: "12px",
             textTransform: "none",
@@ -77,7 +163,7 @@ export default function DeliveryEditPage({
             boxShadow: "none",
           }}
         >
-          Save Changes
+          {saving ? "Saving..." : "Save Changes"}
         </Button>
       </Stack>
 
@@ -114,12 +200,13 @@ export default function DeliveryEditPage({
                   }
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                 >
-                  <MenuItem value="Pending">Pending</MenuItem>
-                  <MenuItem value="Picked Up">Picked Up</MenuItem>
-                  <MenuItem value="In Progress">In Progress</MenuItem>
-                  <MenuItem value="Delivered">Delivered</MenuItem>
-                  <MenuItem value="Delayed">Delayed</MenuItem>
-                  <MenuItem value="Cancelled">Cancelled</MenuItem>
+                  <MenuItem value="pending">Pending</MenuItem>
+                  <MenuItem value="reached_warehouse">Reached Warehouse</MenuItem>
+                  <MenuItem value="shipped_to_stockist">Shipped to Stockist</MenuItem>
+                  <MenuItem value="reached_stockist">Reached Stockist</MenuItem>
+                  <MenuItem value="out_for_delivery">Out for Delivery</MenuItem>
+                  <MenuItem value="delivered">Delivered</MenuItem>
+                  <MenuItem value="cancelled">Cancelled</MenuItem>
                 </TextField>
                 <TextField
                   select
@@ -131,11 +218,18 @@ export default function DeliveryEditPage({
                   }
                   sx={{ "& .MuiOutlinedInput-root": { borderRadius: "12px" } }}
                 >
-                  <MenuItem value="John Doe">John Doe</MenuItem>
-                  <MenuItem value="Jane Smith">Jane Smith</MenuItem>
-                  <MenuItem value="Mike Tyson">Mike Tyson</MenuItem>
-                  <MenuItem value="Sarah Connor">Sarah Connor</MenuItem>
+                  <MenuItem value="">None</MenuItem>
+                  {couriers.map((courier) => (
+                    <MenuItem key={courier.id} value={courier.id.toString()}>
+                      {courier.name}
+                    </MenuItem>
+                  ))}
                 </TextField>
+                {error && (
+                  <Alert severity="error" sx={{ mt: 2 }}>
+                    {error}
+                  </Alert>
+                )}
               </Stack>
             </CardContent>
           </Card>

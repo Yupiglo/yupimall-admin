@@ -1,6 +1,6 @@
 "use client";
 
-import { use } from "react";
+import { use, useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import {
   Box,
@@ -14,6 +14,8 @@ import {
   Chip,
   Divider,
   Grid,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import {
   ArrowBack as BackIcon,
@@ -24,18 +26,7 @@ import {
   MonetizationOn as SpentIcon,
   AccessTime as LastOrderIcon,
 } from "@mui/icons-material";
-
-const customers = [
-  {
-    id: "#CUS-501",
-    name: "Alice Johnson",
-    email: "alice.j@example.com",
-    phone: "+1 555-0101",
-    totalOrders: 12,
-    totalSpent: "$1,450.00",
-    lastOrder: "Oct 26, 2025",
-  },
-];
+import axiosInstance from "@/lib/axios";
 
 export default function CustomerDetailPage({
   params,
@@ -47,8 +38,69 @@ export default function CustomerDetailPage({
   const { id } = resolvedParams;
   const decodedId = decodeURIComponent(id);
 
-  // Mock finding customer by ID
-  const customer = customers.find((c) => c.id === decodedId) || customers[0];
+  const [customer, setCustomer] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const response = await axiosInstance.get(`users/${decodedId}`);
+        if (response.data.message === 'success') {
+          const userData = response.data.user;
+          setCustomer({
+            id: `#CUS-${userData.id}`,
+            name: userData.name || 'Unknown',
+            email: userData.email || 'Not provided',
+            phone: userData.phone || 'Not provided',
+            totalOrders: userData.total_orders || 0,
+            totalSpent: userData.total_spent 
+              ? `$${parseFloat(userData.total_spent).toFixed(2)}`
+              : "$0.00",
+            lastOrder: userData.last_order_date 
+              ? new Date(userData.last_order_date).toLocaleDateString('en-US', { 
+                  month: 'short', 
+                  day: 'numeric', 
+                  year: 'numeric' 
+                })
+              : 'No orders yet',
+          });
+        }
+      } catch (err) {
+        console.error("Error fetching customer:", err);
+        setError("Failed to load customer details");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (decodedId) {
+      fetchCustomer();
+    }
+  }, [decodedId]);
+
+  if (loading) {
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <CircularProgress />
+      </Box>
+    );
+  }
+
+  if (error || !customer) {
+    return (
+      <Box sx={{ p: 4 }}>
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error || "Customer not found"}
+        </Alert>
+        <Button variant="contained" onClick={() => router.push("/customers")}>
+          Back to Customers
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ flexGrow: 1 }}>
