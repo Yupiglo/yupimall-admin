@@ -2,12 +2,15 @@
 
 import { useState } from "react";
 import {
-    Box, Typography, Card, CardContent, CircularProgress, Stack, Chip, Switch,
+    Box, Typography, Card, CardContent, CircularProgress, Stack, Chip,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
-    TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Alert,
+    TextField, Button, Dialog, DialogTitle, DialogContent, DialogActions, Alert, IconButton, Tooltip,
 } from "@mui/material";
+import { Edit as EditIcon } from "@mui/icons-material";
 import { useEligibleSellers, toggleWalletSeller } from "@/hooks/useWalletAdmin";
 import { useRouter } from "next/navigation";
+
+type DialogMode = "toggle" | "edit";
 
 export default function WalletSellersPage() {
     const router = useRouter();
@@ -17,30 +20,59 @@ export default function WalletSellersPage() {
     const { data, loading, refresh } = useEligibleSellers(page, 30, search);
 
     const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogMode, setDialogMode] = useState<DialogMode>("toggle");
     const [selectedUser, setSelectedUser] = useState<any>(null);
     const [whatsapp, setWhatsapp] = useState("");
-    const [toggling, setToggling] = useState(false);
+    const [saving, setSaving] = useState(false);
     const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-    const handleToggle = (user: any) => {
+    const openToggleDialog = (user: any) => {
         setSelectedUser(user);
         setWhatsapp(user.wallet_seller_whatsapp || "");
+        setDialogMode("toggle");
         setDialogOpen(true);
+    };
+
+    const openEditDialog = (user: any) => {
+        setSelectedUser(user);
+        setWhatsapp(user.wallet_seller_whatsapp || "");
+        setDialogMode("edit");
+        setDialogOpen(true);
+    };
+
+    const closeDialog = () => {
+        setDialogOpen(false);
+        setSelectedUser(null);
     };
 
     const confirmToggle = async () => {
         if (!selectedUser) return;
-        setToggling(true);
+        setSaving(true);
         try {
             const newStatus = !selectedUser.is_wallet_seller;
             await toggleWalletSeller(selectedUser.id, newStatus, newStatus ? whatsapp : "");
             setFeedback({ type: "success", msg: newStatus ? `${selectedUser.name} activé comme vendeur.` : `${selectedUser.name} désactivé comme vendeur.` });
-            setDialogOpen(false);
+            closeDialog();
             refresh();
         } catch (e: any) {
             setFeedback({ type: "error", msg: e?.response?.data?.message || "Erreur lors de la mise à jour." });
         } finally {
-            setToggling(false);
+            setSaving(false);
+        }
+    };
+
+    const confirmEdit = async () => {
+        if (!selectedUser) return;
+        setSaving(true);
+        try {
+            await toggleWalletSeller(selectedUser.id, selectedUser.is_wallet_seller, whatsapp);
+            setFeedback({ type: "success", msg: `Informations de ${selectedUser.name} mises à jour.` });
+            closeDialog();
+            refresh();
+        } catch (e: any) {
+            setFeedback({ type: "error", msg: e?.response?.data?.message || "Erreur lors de la mise à jour." });
+        } finally {
+            setSaving(false);
         }
     };
 
@@ -105,7 +137,7 @@ export default function WalletSellersPage() {
                                             <TableCell sx={{ fontWeight: 800 }}>Pays / Ville</TableCell>
                                             <TableCell sx={{ fontWeight: 800 }}>WhatsApp</TableCell>
                                             <TableCell sx={{ fontWeight: 800 }} align="center">Vendeur actif</TableCell>
-                                            <TableCell sx={{ fontWeight: 800 }} align="center">Action</TableCell>
+                                            <TableCell sx={{ fontWeight: 800 }} align="center">Actions</TableCell>
                                         </TableRow>
                                     </TableHead>
                                     <TableBody>
@@ -132,15 +164,28 @@ export default function WalletSellersPage() {
                                                     />
                                                 </TableCell>
                                                 <TableCell align="center">
-                                                    <Button
-                                                        variant={u.is_wallet_seller ? "outlined" : "contained"}
-                                                        color={u.is_wallet_seller ? "error" : "success"}
-                                                        size="small"
-                                                        onClick={() => handleToggle(u)}
-                                                        sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none", minWidth: 100 }}
-                                                    >
-                                                        {u.is_wallet_seller ? "Désactiver" : "Activer"}
-                                                    </Button>
+                                                    <Stack direction="row" spacing={1} justifyContent="center">
+                                                        {u.is_wallet_seller && (
+                                                            <Tooltip title="Modifier les infos vendeur">
+                                                                <IconButton
+                                                                    color="primary"
+                                                                    size="small"
+                                                                    onClick={() => openEditDialog(u)}
+                                                                >
+                                                                    <EditIcon fontSize="small" />
+                                                                </IconButton>
+                                                            </Tooltip>
+                                                        )}
+                                                        <Button
+                                                            variant={u.is_wallet_seller ? "outlined" : "contained"}
+                                                            color={u.is_wallet_seller ? "error" : "success"}
+                                                            size="small"
+                                                            onClick={() => openToggleDialog(u)}
+                                                            sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none", minWidth: 100 }}
+                                                        >
+                                                            {u.is_wallet_seller ? "Désactiver" : "Activer"}
+                                                        </Button>
+                                                    </Stack>
                                                 </TableCell>
                                             </TableRow>
                                         ))}
@@ -160,7 +205,8 @@ export default function WalletSellersPage() {
                 </CardContent>
             </Card>
 
-            <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="sm" fullWidth>
+            {/* Toggle Dialog */}
+            <Dialog open={dialogOpen && dialogMode === "toggle"} onClose={closeDialog} maxWidth="sm" fullWidth>
                 <DialogTitle sx={{ fontWeight: 800 }}>
                     {selectedUser?.is_wallet_seller ? "Désactiver le vendeur" : "Activer comme vendeur"}
                 </DialogTitle>
@@ -185,15 +231,52 @@ export default function WalletSellersPage() {
                     )}
                 </DialogContent>
                 <DialogActions sx={{ px: 3, pb: 2 }}>
-                    <Button onClick={() => setDialogOpen(false)} sx={{ textTransform: "none" }}>Annuler</Button>
+                    <Button onClick={closeDialog} sx={{ textTransform: "none" }}>Annuler</Button>
                     <Button
                         variant="contained"
                         color={selectedUser?.is_wallet_seller ? "error" : "success"}
                         onClick={confirmToggle}
-                        disabled={toggling}
+                        disabled={saving}
                         sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}
                     >
-                        {toggling ? <CircularProgress size={20} /> : selectedUser?.is_wallet_seller ? "Désactiver" : "Activer"}
+                        {saving ? <CircularProgress size={20} /> : selectedUser?.is_wallet_seller ? "Désactiver" : "Activer"}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* Edit Dialog */}
+            <Dialog open={dialogOpen && dialogMode === "edit"} onClose={closeDialog} maxWidth="sm" fullWidth>
+                <DialogTitle sx={{ fontWeight: 800 }}>
+                    Modifier le vendeur
+                </DialogTitle>
+                <DialogContent>
+                    <Stack spacing={2} sx={{ mt: 1 }}>
+                        <Box sx={{ p: 2, bgcolor: "action.hover", borderRadius: 3 }}>
+                            <Typography variant="body2" color="text.secondary">Vendeur</Typography>
+                            <Typography fontWeight={700}>{selectedUser?.name}</Typography>
+                            <Typography variant="body2" color="text.secondary">{selectedUser?.email} — {selectedUser?.role}</Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                {selectedUser?.country?.name || "—"}{selectedUser?.city ? ` / ${selectedUser.city}` : ""}
+                            </Typography>
+                        </Box>
+                        <TextField
+                            label="Numéro WhatsApp"
+                            value={whatsapp}
+                            onChange={(e) => setWhatsapp(e.target.value)}
+                            fullWidth
+                            placeholder="+243 XXX XXX XXX"
+                        />
+                    </Stack>
+                </DialogContent>
+                <DialogActions sx={{ px: 3, pb: 2 }}>
+                    <Button onClick={closeDialog} sx={{ textTransform: "none" }}>Annuler</Button>
+                    <Button
+                        variant="contained"
+                        onClick={confirmEdit}
+                        disabled={saving}
+                        sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}
+                    >
+                        {saving ? <CircularProgress size={20} /> : "Enregistrer"}
                     </Button>
                 </DialogActions>
             </Dialog>
