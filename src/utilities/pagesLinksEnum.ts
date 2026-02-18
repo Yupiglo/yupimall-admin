@@ -17,4 +17,9 @@ export enum LinksEnum {
   notifications = "/notifications",
   logs = "/logs",
   profile = "/profile",
+
+  wallets = "/wallets",
+  walletsRecharge = "/wallets/recharge",
+  walletsTransactions = "/wallets/transactions",
+  exchangeRates = "/wallets/exchange-rates",
 }

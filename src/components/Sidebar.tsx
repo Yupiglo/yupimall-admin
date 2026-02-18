@@ -30,6 +30,7 @@ import {
   Logout as LogoutIcon,
   ArrowCircleUp as EntriesIconAlt,
   ArrowCircleDown as ExitsIconAlt,
+  AccountBalanceWallet as WalletIcon,
 } from "@mui/icons-material";
 
 const navItems = [
@@ -42,6 +43,7 @@ const navItems = [
   { name: "Delivery", href: "/delivery", icon: <DeliveriesIcon /> },
   { name: "Customers", href: "/customers", icon: <CustomersIcon /> },
   { name: "Managers", href: "/managers", icon: <ManagersIcon /> },
+  { name: "Wallets", href: "/wallets", icon: <WalletIcon /> },
   { name: "Notifications", href: "/notifications", icon: <NotificationsIcon /> },
   { name: "System Logs", href: "/logs", icon: <LogsIcon /> },
   { name: "Profile", href: "/profile", icon: <ProfileIcon /> },
