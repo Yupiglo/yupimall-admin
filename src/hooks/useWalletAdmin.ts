@@ -3,64 +3,78 @@
 import { useState, useEffect, useCallback } from "react";
 import axiosInstance from "@/lib/axios";
 
+function extractError(err: any): string {
+    const status = err.response?.status;
+    const msg = err.response?.data?.message;
+    if (status === 401) return "Session expirée. Veuillez vous reconnecter.";
+    if (msg) return msg;
+    return "Erreur réseau. Vérifiez votre connexion.";
+}
+
 export function useAllWallets(page = 1, perPage = 20) {
     const [wallets, setWallets] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetch = useCallback(async () => {
         try {
-            setLoading(true);
+            setLoading(true); setError(null);
             const res = await axiosInstance.get("wallet/all", { params: { page, per_page: perPage } });
             setWallets(res.data.wallets);
-        } catch {
+        } catch (err: any) {
             setWallets(null);
+            setError(extractError(err));
         } finally {
             setLoading(false);
         }
     }, [page, perPage]);
 
     useEffect(() => { fetch(); }, [fetch]);
-    return { wallets, loading, refresh: fetch };
+    return { wallets, loading, error, refresh: fetch };
 }
 
 export function useAllTransactions(page = 1, perPage = 30) {
     const [transactions, setTransactions] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetch = useCallback(async () => {
         try {
-            setLoading(true);
+            setLoading(true); setError(null);
             const res = await axiosInstance.get("wallet/transactions/all", { params: { page, per_page: perPage } });
             setTransactions(res.data.transactions);
-        } catch {
+        } catch (err: any) {
             setTransactions(null);
+            setError(extractError(err));
         } finally {
             setLoading(false);
         }
     }, [page, perPage]);
 
     useEffect(() => { fetch(); }, [fetch]);
-    return { transactions, loading, refresh: fetch };
+    return { transactions, loading, error, refresh: fetch };
 }
 
 export function useExchangeRates() {
     const [rates, setRates] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetch = useCallback(async () => {
         try {
-            setLoading(true);
+            setLoading(true); setError(null);
             const res = await axiosInstance.get("exchange-rates");
             setRates(res.data.rates);
-        } catch {
+        } catch (err: any) {
             setRates([]);
+            setError(extractError(err));
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => { fetch(); }, [fetch]);
-    return { rates, loading, refresh: fetch };
+    return { rates, loading, error, refresh: fetch };
 }
 
 export async function rechargeWallet(walletId: number, amount: number) {
@@ -76,21 +90,23 @@ export async function rechargeWalletByUser(userId: number, amount: number) {
 export function useActiveSellers() {
     const [sellers, setSellers] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetch = useCallback(async () => {
         try {
-            setLoading(true);
+            setLoading(true); setError(null);
             const res = await axiosInstance.get("wallet/sellers");
             setSellers(res.data.sellers || []);
-        } catch {
+        } catch (err: any) {
             setSellers([]);
+            setError(extractError(err));
         } finally {
             setLoading(false);
         }
     }, []);
 
     useEffect(() => { fetch(); }, [fetch]);
-    return { sellers, loading, refresh: fetch };
+    return { sellers, loading, error, refresh: fetch };
 }
 
 export async function createExchangeRate(fromCurrency: string, rate: number) {
@@ -106,21 +122,23 @@ export async function generateTreasury(amount: number, adminUserId: number) {
 export function useEligibleSellers(page = 1, perPage = 30, search = "") {
     const [data, setData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
     const fetch = useCallback(async () => {
         try {
-            setLoading(true);
+            setLoading(true); setError(null);
             const res = await axiosInstance.get("wallet/sellers/eligible", { params: { page, per_page: perPage, ...(search ? { search } : {}) } });
             setData(res.data.users);
-        } catch {
+        } catch (err: any) {
             setData(null);
+            setError(extractError(err));
         } finally {
             setLoading(false);
         }
     }, [page, perPage, search]);
 
     useEffect(() => { fetch(); }, [fetch]);
-    return { data, loading, refresh: fetch };
+    return { data, loading, error, refresh: fetch };
 }
 
 export async function toggleWalletSeller(userId: number, isWalletSeller: boolean, whatsapp?: string) {
