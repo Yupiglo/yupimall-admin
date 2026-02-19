@@ -173,6 +173,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       session.refreshToken = token.refreshToken as string;
       session.error = token.error as string;
       if (session.user) {
+        session.user.id = ((token as any).user?.id ?? token.sub) as string;
         session.user.name = token.name as string;
         session.user.role = token.role as string;
         session.user.country = token.country as string;

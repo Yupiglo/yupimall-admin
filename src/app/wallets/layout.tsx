@@ -1,12 +1,19 @@
 "use client";
 
+import { useEffect } from "react";
 import AppShell from "@/components/AppShell";
 import { Box, Card, Stack, Typography, CircularProgress } from "@mui/material";
 import { AccountBalanceWallet as WalletIcon } from "@mui/icons-material";
 import { useAdminWalletBalance } from "@/hooks/useWalletAdmin";
 
 export default function WalletsLayout({ children }: { children: React.ReactNode }) {
-    const { balance, loading } = useAdminWalletBalance();
+    const { balance, loading, refresh } = useAdminWalletBalance();
+
+    useEffect(() => {
+        const handler = () => refresh();
+        window.addEventListener("walletBalanceUpdated", handler);
+        return () => window.removeEventListener("walletBalanceUpdated", handler);
+    }, [refresh]);
 
     return (
         <AppShell>
