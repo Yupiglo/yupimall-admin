@@ -215,6 +215,7 @@ export default function OrdersHeader() {
 
       <Stack direction={{ xs: "column", md: "row" }} spacing={2} sx={{ mt: 4 }}>
         <TextField
+          id="orders-search"
           placeholder="Search Order ID or Customer..."
           variant="outlined"
           fullWidth
@@ -236,6 +237,7 @@ export default function OrdersHeader() {
         />
         <Stack direction="row" spacing={2} sx={{ minWidth: { md: 450 } }}>
           <TextField
+            id="orders-status"
             select
             fullWidth
             value={selectedStatus}
@@ -264,6 +266,7 @@ export default function OrdersHeader() {
             ))}
           </TextField>
           <TextField
+            id="orders-time-range"
             select
             fullWidth
             value={selectedRange}
