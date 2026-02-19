@@ -37,15 +37,16 @@ export function useOrderDetail(id: string) {
             const response = await axiosInstance.get(`orders/${id}`);
             if (response.data.message === 'success') {
                 const data = response.data.order;
-                // Map cartItem to items for UI compatibility
+                // API showOne returns items directly; toNodeOrder (list) returns cartItem
+                const items = data.items || (data.cartItem?.map((ci: any) => ({
+                    productName: (typeof ci.productId === 'object' ? ci.productId?.title : null) || 'Produit',
+                    quantity: ci.quantity,
+                    price: ci.price,
+                    totalPrice: (ci.price || 0) * (ci.quantity || 1)
+                })) || []);
                 const mappedOrder: Order = {
                     ...data,
-                    items: data.cartItem?.map((ci: any) => ({
-                        product: typeof ci.productId === 'object' ? ci.productId : { title: 'Produit', price: ci.price },
-                        quantity: ci.quantity,
-                        price: ci.price,
-                        totalPrice: ci.price * ci.quantity
-                    })) || []
+                    items
                 };
                 setOrder(mappedOrder);
             }
@@ -62,10 +63,10 @@ export function useOrderDetail(id: string) {
             setUpdating(true);
             const response = await axiosInstance.put(`orders/${id}/status`, { status });
             if (response.data.message === 'success') {
-                // Refresh local data
                 setOrder((prev: Order | null) => prev ? ({ ...prev, status }) : null);
                 return true;
             }
+            return false;
         } catch (err) {
             console.error("Error updating order status:", err);
             return false;
