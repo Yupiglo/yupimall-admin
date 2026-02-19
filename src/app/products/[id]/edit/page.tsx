@@ -781,7 +781,7 @@ export default function ProductEditPage({
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>Existing Images</Typography>
                 <Grid container spacing={1} sx={{ mb: 3 }}>
                   {formData.images.map((img, idx) => (
-                    <Grid key={idx} size={{ xs: 4 }}>
+                    <Grid key={idx} size={{ xs: 6, sm: 4 }}>
                       <Box sx={{ position: "relative", pt: "100%", borderRadius: "8px", overflow: "hidden", border: "1px solid", borderColor: "divider" }}>
                         <img
                           src={getImagePath(img)}
@@ -803,7 +803,7 @@ export default function ProductEditPage({
                 <Typography variant="subtitle2" sx={{ mb: 1 }}>New Images to Upload</Typography>
                 <Grid container spacing={1}>
                   {newImages.map((file, idx) => (
-                    <Grid key={idx} size={{ xs: 4 }}>
+                    <Grid key={idx} size={{ xs: 6, sm: 4 }}>
                       <Box sx={{ position: "relative", pt: "100%", borderRadius: "8px", overflow: "hidden", border: "2px dashed", borderColor: "primary.main" }}>
                         <img
                           src={URL.createObjectURL(file)}

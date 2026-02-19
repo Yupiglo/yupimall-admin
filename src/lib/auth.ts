@@ -200,5 +200,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     },
   },
   trustHost: true,
-  secret: process.env.AUTH_SECRET,
+  secret: (() => {
+    const secret = process.env.AUTH_SECRET;
+    if (process.env.NODE_ENV === "production" && !secret) {
+      throw new Error("AUTH_SECRET is required in production. See docs/SECURITE.md");
+    }
+    return secret || "default_landing_secret_for_build";
+  })(),
 });

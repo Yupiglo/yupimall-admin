@@ -15,6 +15,7 @@ import {
 import { NorthEast as ArrowIcon } from "@mui/icons-material";
 import { useRouter } from "next/navigation";
 import axiosInstance from "@/lib/axios";
+import { getImagePath } from "@/helpers/utils/image.utils";
 
 interface Product {
     _id: string;
@@ -133,15 +134,7 @@ export default function TopProductSales() {
                             >
                                 <Stack direction="row" spacing={2} alignItems="center">
                                     <Avatar
-                                        src={
-                                            product.imgCover
-                                                ? product.imgCover.startsWith("http")
-                                                    ? product.imgCover
-                                                    : product.imgCover.startsWith("/")
-                                                        ? product.imgCover
-                                                        : `/${product.imgCover}`
-                                                : undefined
-                                        }
+                                        src={getImagePath(product.imgCover)}
                                         sx={{
                                             width: 40,
                                             height: 40,

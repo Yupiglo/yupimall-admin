@@ -90,7 +90,7 @@ export default function OrdersTable() {
     <TableContainer
       component={Paper}
       variant="outlined"
-      sx={{ borderRadius: "16px", overflow: "hidden" }}
+      sx={{ borderRadius: "16px", overflow: "hidden", overflowX: "auto" }}
     >
       <Table sx={{ minWidth: 700 }}>
         <TableHead sx={{ bgcolor: "action.hover" }}>

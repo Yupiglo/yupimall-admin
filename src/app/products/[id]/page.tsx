@@ -30,6 +30,7 @@ import {
 } from "@mui/icons-material";
 import axiosInstance from "@/lib/axios";
 import { CurrencyContext } from "@/helpers/currency/CurrencyContext";
+import { getImagePath } from "@/helpers/utils/image.utils";
 
 interface Product {
   _id: string;
@@ -116,12 +117,7 @@ export default function ProductDetailPage({
     return `${selectedCurr.symbol}${converted.toFixed(2)}`;
   };
 
-  // Helper to resolve image
-  const getImageUrl = (img?: string) => {
-    if (!img) return "";
-    if (img.startsWith("http")) return img;
-    return `${process.env.NEXT_PUBLIC_API_URL}/${img}`;
-  };
+  const getImageUrl = (img?: string) => getImagePath(img);
 
   const quantity = product.quantity || 0;
   const statusLabel = quantity === 0 ? "Rupture" : quantity < 10 ? "Stock bas" : "En stock";

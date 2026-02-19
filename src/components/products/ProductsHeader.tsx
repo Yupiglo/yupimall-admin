@@ -26,6 +26,7 @@ import {
 import { useState, useEffect } from "react";
 import AddProductModal from "./AddProductModal";
 import axiosInstance from "@/lib/axios";
+import { getImagePath } from "@/helpers/utils/image.utils";
 
 interface Category {
   _id: string;
@@ -79,7 +80,7 @@ export default function ProductsHeader({
           id: p.id,
           name: p.name || p.title,
           sales: p.sold_count || p.order_count || 0,
-          image: p.image || p.images?.[0] || undefined,
+          image: getImagePath(p.image || p.imgCover || p.img_cover || p.images?.[0]),
         }));
       setBestSellers(sorted);
     } catch (err) {
@@ -209,7 +210,7 @@ export default function ProductsHeader({
                     <Stack direction="row" spacing={2} alignItems="center">
                       <Avatar
                         variant="rounded"
-                        src={product.image}
+                        src={product.image || "/images/placeholder-pro.jpg"}
                         sx={{ width: 48, height: 48, borderRadius: "12px" }}
                       >
                         {product.name?.charAt(0)}

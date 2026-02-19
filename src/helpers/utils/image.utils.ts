@@ -22,6 +22,14 @@ export const getImagePath = (path: string | null | undefined): string => {
         return "/" + path.replace(/^\//, "");
     }
 
+    // If it's a storage path (Laravel default), prefix with backend origin
+    if (path.startsWith('storage/') || path.startsWith('/storage/')) {
+        const backendOrigin = process.env.NEXT_PUBLIC_BACKEND_ORIGIN || process.env.NEXT_PUBLIC_API_URL || 'https://api.yupimall.net';
+        const base = backendOrigin.replace(/\/$/, "");
+        const normalizedPath = path.replace(/^\//, "");
+        return `${base}/${normalizedPath}`;
+    }
+
     // Fallback logic for other paths
     const backendOrigin = process.env.NEXT_PUBLIC_BACKEND_ORIGIN || process.env.NEXT_PUBLIC_API_URL || 'https://api.yupimall.net';
     const base = backendOrigin.replace(/\/$/, "");

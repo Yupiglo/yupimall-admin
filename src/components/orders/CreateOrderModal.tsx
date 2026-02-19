@@ -204,7 +204,7 @@ export default function CreateOrderModal({
               <Stack spacing={2}>
                 {items.map((item, index) => (
                   <Grid container spacing={2} key={index} alignItems="center">
-                    <Grid size={{ xs: 7 }}>
+                    <Grid size={{ xs: 12, sm: 7 }}>
                       <TextField
                         select
                         fullWidth
@@ -233,7 +233,7 @@ export default function CreateOrderModal({
                         ))}
                       </TextField>
                     </Grid>
-                    <Grid size={{ xs: 3 }}>
+                    <Grid size={{ xs: 6, sm: 3 }}>
                       <TextField
                         type="number"
                         fullWidth
@@ -254,7 +254,7 @@ export default function CreateOrderModal({
                         inputProps={{ min: 1 }}
                       />
                     </Grid>
-                    <Grid size={{ xs: 2 }}>
+                    <Grid size={{ xs: 6, sm: 2 }}>
                       <IconButton
                         color="error"
                         size="small"
