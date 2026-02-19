@@ -4,6 +4,7 @@ import { useState } from "react";
 import {
     Box, Typography, Card, CardContent, Button, CircularProgress, Stack, Chip,
     Table, TableBody, TableCell, TableContainer, TableHead, TableRow, TablePagination,
+    Grid,
 } from "@mui/material";
 import { useAllWallets } from "@/hooks/useWalletAdmin";
 import { useRouter } from "next/navigation";
@@ -15,25 +16,35 @@ export default function WalletsOverview() {
 
     return (
         <Box sx={{ p: { xs: 2, md: 3 } }}>
-            <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 4 }}>
+            <Stack direction={{ xs: "column", md: "row" }} justifyContent="space-between" alignItems={{ xs: "stretch", md: "center" }} spacing={2} sx={{ mb: 4 }}>
                 <Typography variant="h4" fontWeight={900}>Gestion des Wallets</Typography>
-                <Stack direction="row" spacing={2}>
-                    <Button variant="contained" onClick={() => router.push("/wallets/recharge")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
-                        Recharger un Wallet
-                    </Button>
-                    <Button variant="contained" color="secondary" onClick={() => router.push("/wallets/sellers")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
-                        Gérer Vendeurs
-                    </Button>
-                    <Button variant="outlined" onClick={() => router.push("/wallets/exchange-rates")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
-                        Taux de change
-                    </Button>
-                    <Button variant="outlined" onClick={() => router.push("/wallets/transactions")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
-                        Audit Transactions
-                    </Button>
-                    <Button variant="outlined" color="warning" onClick={() => router.push("/wallets/pins")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
-                        Rembourser PINs
-                    </Button>
-                </Stack>
+                <Grid container spacing={1.5} sx={{ width: { xs: "100%", md: "auto" }, justifyContent: { xs: "flex-start", md: "flex-end" } }}>
+                    <Grid item>
+                        <Button variant="contained" onClick={() => router.push("/wallets/recharge")} sx={{ borderRadius: 2, fontWeight: 700, textTransform: "none" }}>
+                            Recharger
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button variant="contained" color="secondary" onClick={() => router.push("/wallets/sellers")} sx={{ borderRadius: 2, fontWeight: 700, textTransform: "none" }}>
+                            Vendeurs
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button variant="outlined" onClick={() => router.push("/wallets/exchange-rates")} sx={{ borderRadius: 2, fontWeight: 700, textTransform: "none" }}>
+                            Taux
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button variant="outlined" onClick={() => router.push("/wallets/transactions")} sx={{ borderRadius: 2, fontWeight: 700, textTransform: "none" }}>
+                            Audit
+                        </Button>
+                    </Grid>
+                    <Grid item>
+                        <Button variant="outlined" color="warning" onClick={() => router.push("/wallets/pins")} sx={{ borderRadius: 2, fontWeight: 700, textTransform: "none" }}>
+                            Rembourser PINs
+                        </Button>
+                    </Grid>
+                </Grid>
             </Stack>
 
             <Card sx={{ borderRadius: 4 }}>

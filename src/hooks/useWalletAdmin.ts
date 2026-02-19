@@ -11,6 +11,31 @@ function extractError(err: any): string {
     return "Erreur réseau. Vérifiez votre connexion.";
 }
 
+export function useAdminWalletBalance() {
+    const [balance, setBalance] = useState<number | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetch = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const res = await axiosInstance.get("wallet/balance");
+            setBalance(parseFloat(res.data.wallet?.balance ?? 0));
+        } catch (err: any) {
+            setBalance(null);
+            setError(extractError(err));
+        } finally {
+            setLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetch();
+    }, [fetch]);
+    return { balance, loading, error, refresh: fetch };
+}
+
 export function useAllWallets(page = 1, perPage = 20) {
     const [wallets, setWallets] = useState<any>(null);
     const [loading, setLoading] = useState(true);
