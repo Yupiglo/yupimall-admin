@@ -30,6 +30,9 @@ export default function WalletsOverview() {
                     <Button variant="outlined" onClick={() => router.push("/wallets/transactions")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
                         Audit Transactions
                     </Button>
+                    <Button variant="outlined" color="warning" onClick={() => router.push("/wallets/pins")} sx={{ borderRadius: 3, fontWeight: 700, textTransform: "none" }}>
+                        Rembourser PINs
+                    </Button>
                 </Stack>
             </Stack>
 

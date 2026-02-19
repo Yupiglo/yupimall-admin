@@ -149,3 +149,36 @@ export async function toggleWalletSeller(userId: number, isWalletSeller: boolean
     });
     return res.data;
 }
+
+export function useAllPins(page = 1, perPage = 30, sellerId?: number, status?: string) {
+    const [pins, setPins] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    const fetch = useCallback(async () => {
+        try {
+            setLoading(true);
+            setError(null);
+            const params: Record<string, unknown> = { page, per_page: perPage };
+            if (sellerId) params.seller_id = sellerId;
+            if (status) params.status = status;
+            const res = await axiosInstance.get("wallet/pins/all", { params });
+            setPins(res.data.pins);
+        } catch (err: any) {
+            setPins(null);
+            setError(extractError(err));
+        } finally {
+            setLoading(false);
+        }
+    }, [page, perPage, sellerId, status]);
+
+    useEffect(() => {
+        fetch();
+    }, [fetch]);
+    return { pins, loading, error, refresh: fetch };
+}
+
+export async function refundPin(pinId: number, reason?: string) {
+    const res = await axiosInstance.post(`wallet/pins/${pinId}/refund`, reason ? { reason } : {});
+    return res.data;
+}
